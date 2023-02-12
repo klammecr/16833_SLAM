@@ -77,8 +77,8 @@ if __name__ == '__main__':
     Initialize Parameters
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_to_map', default='../data/map/wean.dat')
-    parser.add_argument('--path_to_log', default='../data/log/robotdata1.log')
+    parser.add_argument('--path_to_map', default='C:/Users/chris/dev/16833/hw1/src/data/map/wean.dat')
+    parser.add_argument('--path_to_log', default='C:/Users/chris/dev/16833/hw1/src/data/log/robotdata1.log')
     parser.add_argument('--output', default='results')
     parser.add_argument('--num_particles', default=500, type=int)
     parser.add_argument('--visualize', action='store_true')
@@ -148,24 +148,34 @@ if __name__ == '__main__':
             """
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
+            X_bar_new[m, 0:3] = x_t1
 
             """
             SENSOR MODEL
             """
-            if (meas_type == "L"):
-                z_t = ranges
-                w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
-                X_bar_new[m, :] = np.hstack((x_t1, w_t))
+            # if (meas_type == "L"):
+            #     z_t = ranges
+            #     w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
+            #     X_bar_new[m, :] = np.hstack((x_t1, w_t))
             # else:
             #     X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
 
+        # Update the action and x bar
         X_bar = X_bar_new
         u_t0 = u_t1
 
         """
         RESAMPLING
         """
-        X_bar = resampler.low_variance_sampler(X_bar)
+        #X_bar = resampler.low_variance_sampler(X_bar)
 
         if args.visualize:
-            visualize_timestep(X_bar, time_idx, args.output)
+            import matplotlib.colors as colors
+            colors_list = list(colors.CSS4_COLORS.keys())
+            plt.figure(2)
+            if time_idx == 1:
+                plt.scatter(x_t0[0], x_t0[1], c = "k")
+            plt.plot(np.linspace(x_t0[0], x_t1[0], 5), np.linspace(x_t0[1], x_t1[1], 5), color = colors_list[time_idx % len(colors_list)])
+            plt.figure(1)
+            visualize_timestep(x_t1.reshape(1, -1), time_idx, args.output)
+            #visualize_timestep(X_bar, time_idx, args.output)

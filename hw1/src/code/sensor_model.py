@@ -59,7 +59,7 @@ class SensorModel:
         r = 25
         
         #compute laser's location
-        lx = rx - r*np.cos(theta) 
+        lx = rx + r*np.cos(theta) 
         ly = ry + r*np.sin(theta)
         
         return [lx, ly, theta]
@@ -93,7 +93,7 @@ class SensorModel:
                 break
             
             #update x and y coordinates
-            cx = cx - np.cos(theta)
+            cx = cx + np.cos(theta)
             cy = cy + np.sin(theta)
             
             #self.rays[int(cy)][int(cx)] = -2

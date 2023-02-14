@@ -188,6 +188,9 @@ if __name__ == '__main__':
             else:
                 X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
 
+        # Normalize the probabilities so they add up to 1 for all the particles
+        X_bar_new[:, -1] /= np.sum(X_bar_new[:, -1])
+
         # Update the action and x bar
         X_bar = X_bar_new
         u_t0 = u_t1

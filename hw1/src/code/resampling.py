@@ -52,7 +52,7 @@ class Resampling:
         U_list = r + np.array(range(M)) * 1/M
 
         # DEBUG:
-        # self.visualize_low_variance_resampler(U_list, X_bar)
+        self.visualize_low_variance_resampler(U_list, X_bar)
 
         # Here we will go through the particles and start the interplay of c and U
         # U will increment a fixed amount each iteration
@@ -77,7 +77,7 @@ class Resampling:
 
         # set up the figure
         h = .25
-        fig = plt.figure()
+        fig = plt.figure(3)
         ax = fig.add_subplot(111)
         ax.set_xlim(-0.05,1.05)
         ax.set_ylim(-h, h)
@@ -103,3 +103,4 @@ class Resampling:
         plt.axis('off')
         plt.legend()
         plt.show()
+        plt.close()

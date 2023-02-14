@@ -127,8 +127,9 @@ class SensorModel:
         Model this as a gaussian centered around the ray cast and has spread via a hyper-param
         """
         p_hit = 0.
-        if z_t <= self._max_range:
-            eta = 1 / norm.cdf(self._max_range, loc = z_gt, scale = self._sigma_hit)
+        norm_cdf = norm.cdf(self._max_range, loc = z_gt, scale = self._sigma_hit)
+        if 0 <= z_t and z_t <= self._max_range and norm_cdf > 0:
+            eta = 1 / norm_cdf
             p_hit = eta * math.exp(-0.5 * ((z_t - z_gt) / self._sigma_hit) ** 2)
         return p_hit
 
@@ -244,10 +245,13 @@ class SensorModel:
         
         # TODO: logsumexp for numerical stability
         #aggregate probabilities
-        p = self._z_hit   * p1 + \
-            self._z_short * p2 + \
-            self._z_max   * p3 + \
-            self._z_rand  * p4
+        # Validate the sum of the mixing parameters is 1
+        sum_z = self._z_hit + self._z_short + self._z_max + self._z_rand
+
+        p = (self._z_hit   / sum_z) * p1 + \
+            (self._z_short / sum_z) * p2 + \
+            (self._z_max   / sum_z) * p3 + \
+            (self._z_rand  / sum_z) * p4
         
         #multiply probabilities
         prob_zt1 = np.prod(p)

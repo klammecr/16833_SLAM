@@ -74,8 +74,8 @@ def init_particles_freespace(num_particles, occupancy_map):
     x_unscaled = x_free[idx_sampled]
     
     #randomly generate values between 0 and 10 to account for map scale
-    y_perturb = np.random.uniform(0, 10, y_unscaled.shape)
-    x_perturb = np.random.uniform(0, 10, x_unscaled.shape)
+    y_perturb = np.random.uniform(0, occupancy_map._resolution, y_unscaled.shape)
+    x_perturb = np.random.uniform(0, occupancy_map._resolution, x_unscaled.shape)
     
     #generate scaled coordinates
     y_scaled = y_unscaled*occupancy_map._resolution + y_perturb

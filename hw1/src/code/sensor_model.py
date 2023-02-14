@@ -72,16 +72,16 @@ class SensorModel:
             angle (int): angle of laser beam
         """
         #unpack particle
-        rx, ry, rtheta = x
+        lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
-        theta = rtheta + angle
+        theta = ltheta + angle
         
         #perform ray casting
         #initialize positions to positions of range sensor
-        cx, cy = rx, ry
+        cx, cy = lx, ly
         
-        #iterate till wall is hit or the ray reaaches edge of map
+        #iterate till wall is hit or the ray reaches edge of map
         while True:
             #if ray goes beyond edge
             if cx < 0 or cx > self.map._size_x - 1 or \
@@ -99,7 +99,7 @@ class SensorModel:
             self.rays[int(cy)][int(cx)] = -2
             #print("ray = ", cx, cy)
             
-        z_gt = math.sqrt((cx-rx)**2 + (cy-ry)**2)    
+        z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)    
         return z_gt
     
     def get_true_ranges(self, x):

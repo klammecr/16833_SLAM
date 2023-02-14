@@ -55,7 +55,6 @@ def init_particles_freespace(num_particles, occupancy_map):
 
     # initialize [x, y, theta] positions in world_frame for all particles
     """
-    TODO : Add your code here
     This version converges faster than init_particles_random
     """
     X_bar_init = np.zeros((num_particles, 4))
@@ -89,7 +88,7 @@ def init_particles_freespace(num_particles, occupancy_map):
     weights = weights / num_particles
     
     #stack all particle attributes
-    X_bar_init = np.hstack((x_scaled, y_scaled, angles, weights))
+    X_bar_init = np.hstack((x_scaled.reshape(-1, 1), y_scaled.reshape(-1, 1), angles.reshape(-1, 1), weights.reshape(-1, 1)))
     
     return X_bar_init
 
@@ -124,12 +123,11 @@ if __name__ == '__main__':
     logfile = open(src_path_log, 'r')
 
     motion_model = MotionModel()
-    sensor_model = SensorModel(occupancy_map)
+    sensor_model = SensorModel(map_obj)
     resampler = Resampling()
 
     num_particles = args.num_particles
-    X_bar = init_particles_random(num_particles, occupancy_map)
-    # X_bar = init_particles_freespace(num_particles, occupancy_map)
+    X_bar = init_particles_freespace(num_particles, map_obj)
     """
     Monte Carlo Localization Algorithm : Main Loop
     """

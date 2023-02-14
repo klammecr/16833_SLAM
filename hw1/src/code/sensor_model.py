@@ -23,12 +23,12 @@ class SensorModel:
         TODO : Tune Sensor Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._z_hit   = 1
+        self._z_hit   = 1.
         self._z_short = 0.1
         self._z_max   = 0.1
-        self._z_rand  = 100
+        self._z_rand  = 100.
 
-        self._sigma_hit = 50
+        self._sigma_hit = 50.
         self._lambda_short = 0.1
 
         # Used in p_max and p_rand, optionally in ray casting
@@ -89,14 +89,14 @@ class SensorModel:
                     break
             
             #if ray hits the wall
-            if self.map._occupancy_map[int(cy)][int(cx)] != 0:
+            if self.map._occupancy_map[int(cy/self.map._resolution)][int(cx/self.map._resolution)] != 0:
                 break
             
             #update x and y coordinates
             cx = cx + np.cos(theta)
             cy = cy + np.sin(theta)
             
-            self.rays[int(cy)][int(cx)] = -2
+            self.rays[int(cy/self.map._resolution)][int(cx/self.map._resolution)] = -2
             #print("ray = ", cx, cy)
             
         z_gt = math.sqrt((cx-rx)**2 + (cy-ry)**2)    
@@ -112,18 +112,54 @@ class SensorModel:
         z_gt = []
         
         #iterate based on subsampling
-        for i in range(1, 181, self._subsampling):
+        for i in range(0, 180, self._subsampling):
             #compute range using ray casting
-            z_unscaled = self.ray_casting(x, i*(math.pi/180))
-            
-            #scale range using map resolution
-            z_scaled = z_unscaled * self.map._resolution
+            z_scaled = self.ray_casting(x, i*(math.pi/180))
             
             #add range to list
             z_gt.append(z_scaled)
         
-        return z_gt        
+        return np.array(z_gt)
     
+    def calc_p_hit(self, z_t, z_gt):
+        """
+        Probability of measuring the true range of an object
+        Model this as a gaussian centered around the ray cast and has spread via a hyper-param
+        """
+        p_hit = 0.
+        if z_t <= self._max_range:
+            eta = 1 / norm.cdf(self._max_range, loc = z_gt, scale = self._sigma_hit)
+            p_hit = eta * math.exp(-0.5 * ((z_t - z_gt) / self._sigma_hit) ** 2)
+        return p_hit
+
+    def calc_p_short(self, z_t, z_gt):
+        """
+        Calculate the probability of unexpected objects.
+        We will treat these objects as sensor noise, they will most commonly be close to the sensor
+        """
+        p_short = 0.
+        if z_t <= z_gt:
+            eta = 1 / (1 - math.exp(-self._lambda_short * z_gt))
+            p_short = eta * self._lambda_short * math.exp(-self._lambda_short * z_t)
+        return p_short
+
+    def calc_p_max(self, z_t):
+        """
+        Calculate the probability of a sensor failure AKA max-range measurement.
+        Count the number of maximum measurements
+        """
+        p_rand = 0.
+        if z_t < self._max_range:
+            p_rand = float(z_t == self._max_range)
+        return p_rand
+
+    def calc_p_rand(self):
+        """
+        Calculate the probability of random measurements.
+        This could be anything from phantom readings to reflectance to cross talk
+        """
+        return 1/self._max_range
+
     def sensor_probs(self, z_t, z_gt):
         """function to compute probabiltiies of measurement
 
@@ -132,54 +168,65 @@ class SensorModel:
             z_gt (list): ground truth data
         """
         #initialize probabilities
-        p1, p2, p3, p4 = [], [], [], []
+        p1, p2, p3, p4 = [],[],[],[]
         
-        #hit probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if z_t <= self._max_range:
-                #compute normalization factor
-                n = 1/norm.cdf(self._max_range, loc=q, scale=self._sigma_hit)
-                #compute probability
-                prob = n*math.exp(-0.5*((p-q)/self._sigma_hit)**2)
+        # Vectorized
+        # p1 = self.calc_p_hit(z_t, z_gt)
+        # p2 = self.calc_p_short(z_t, z_gt)
+        # p3 = self.calc_p_max(z_t)
+        # p4 = np.repeat(self.calc_p_rand(), len(z_t))
+
+        # Combining into one for loop
+        for p, q in zip(z_t, z_gt):
+            p1.append(self.calc_p_hit(p, q))
+            p2.append(self.calc_p_short(p, q))
+            p3.append(self.calc_p_max(p))
+            p4.append(self.calc_p_rand())
+
+        # Old Code
+        # #hit probability
+        # for (p, q) in zip(z_t, z_gt):
+        #     prob = 0
+        #     if z_t <= self._max_range:
+        #         #compute normalization factor
+        #         n = 1/norm.cdf(self._max_range, loc=q, scale=self._sigma_hit)
+        #         #compute probability
+        #         prob = n*math.exp(-0.5*((p-q)/self._sigma_hit)**2)
             
-            p1.append(prob)
+        #     p1.append(prob)
             
-        #short probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p <= q:
-                n = 1/(1 - math.exp(-self._lambda_short*q))
-                prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
-            p2.append(prob)
+        # #short probability
+        # for (p, q) in zip(z_t, z_gt):
+        #     prob = 0
+        #     if p <= q:
+        #         n = 1/(1 - math.exp(-self._lambda_short*q))
+        #         prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
+        #     p2.append(prob)
         
-        #max probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p > self._max_range:
-                prob = 1
+        # #max probability
+        # for (p, q) in zip(z_t, z_gt):
+        #     prob = 0
+        #     if p > self._max_range:
+        #         prob = 1
                  
-            p3.append(prob)
+        #     p3.append(prob)
         
-        #rand probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p < self._max_range:
-                prob = 1/(self._max_range)
+        # #rand probability
+        # for (p, q) in zip(z_t, z_gt):
+        #     prob = 0
+        #     if p < self._max_range:
+        #         prob = 1/(self._max_range)
                 
-            p4.append(prob)
+        #     p4.append(prob)
         
-        return p1, p2, p3, p4
+        return np.array(p1), np.array(p2), np.array(p3), np.array(p4)
         
 
-    def beam_range_finder_model(self, z_t1_arr, x_t1):
+    def beam_range_finder_model(self, z_t1_cm, x_t1):
         """
-        param[in] z_t1_arr : laser range readings [array of 180 values] at time t
+        param[in] z_t1_cm : laser range readings [array of 180 values] at time t in centimeters
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
-        """
-        """
-        TODO : Add your code here
         """
         prob_zt1 = 1.0
         
@@ -187,19 +234,20 @@ class SensorModel:
         x_sensor = self.sensor_location(x_t1)
         
         #perform ray casting to find GT ranges at various angles
-        z_gt = self.get_true_ranges(x_sensor)
+        z_gt_cm = self.get_true_ranges(x_sensor)
         
         #sample laser measurements
-        z_t1_arr = z_t1_arr[::self._subsampling]
+        z_t1_cm = z_t1_cm[::self._subsampling]
         
         #find probabilities
-        p1, p2, p3, p4 = self.sensor_probs(z_t1_arr, z_gt)
+        p1, p2, p3, p4 = self.sensor_probs(z_t1_cm, z_gt_cm)
         
+        # TODO: logsumexp for numerical stability
         #aggregate probabilities
-        p = self._z_hit*p1 + \
-            self._z_short*p2 + \
-            self._z_max*p3 + \
-            self._z_rand*p4
+        p = self._z_hit   * p1 + \
+            self._z_short * p2 + \
+            self._z_max   * p3 + \
+            self._z_rand  * p4
         
         #multiply probabilities
         prob_zt1 = np.prod(p)
@@ -208,14 +256,15 @@ class SensorModel:
 
 
 if __name__ == "__main__":
-    src_path_map = './../data/map/wean.dat'
+    src_path_map = 'C:/Users/chris/dev/16833/hw1/src/data/map/wean.dat'
     map1 = MapReader(src_path_map)
 
     sm = SensorModel(map1)
     
-    z_gt = sm.get_true_ranges([590, 145, 0])
+    # Make sure we pass in cm to this function
+    z_gt = sm.get_true_ranges([6500, 1250, 0])
     print(z_gt)
     
-    #plt.imshow(sm.map._occupancy_map, 'gray')
-    plt.imshow(sm.rays, 'gray')
+    # Visualize the map with the rays
+    map1.visualize_rays(sm.rays)
     plt.savefig('./rays.png')

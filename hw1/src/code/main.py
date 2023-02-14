@@ -59,7 +59,38 @@ def init_particles_freespace(num_particles, occupancy_map):
     This version converges faster than init_particles_random
     """
     X_bar_init = np.zeros((num_particles, 4))
+    
+    #find empty space
+    y_free , x_free = np.where(occupancy_map._occupancy_map == 0)
+    
+    #shuffle indices
+    idx = np.random.permutation(y_free.size)
+    
+    #sample N indices
+    idx_sampled = idx[0:num_particles]
+    
+    #sample unscaled coordinates
+    y_unscaled = y_free[idx_sampled]
+    x_unscaled = x_free[idx_sampled]
+    
+    #randomly generate values between 0 and 10 to account for map scale
+    y_perturb = np.random.uniform(0, 10, y_unscaled.shape)
+    x_perturb = np.random.uniform(0, 10, x_unscaled.shape)
+    
+    #generate scaled coordinates
+    y_scaled = y_unscaled*occupancy_map._resolution + y_perturb
+    x_scaled = x_unscaled*occupancy_map._resolution + x_perturb
 
+    #generate random orientations
+    angles = np.random.uniform(-3.14, 3.14, (num_particles, 1))
+    
+    #initialize weights
+    weights = np.ones((num_particles, 1), dtype=np.float64)
+    weights = weights / num_particles
+    
+    #stack all particle attributes
+    X_bar_init = np.hstack((x_scaled, y_scaled, angles, weights))
+    
     return X_bar_init
 
 

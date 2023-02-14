@@ -38,7 +38,7 @@ class SensorModel:
         self._min_probability = 0.35
 
         # Used in sampling angles in ray casting
-        self._subsampling = 2
+        self._subsampling = 5
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -59,7 +59,7 @@ class SensorModel:
         r = 25
         
         #compute laser's location
-        lx = rx - r*np.cos(theta) 
+        lx = rx + r*np.cos(theta) 
         ly = ry + r*np.sin(theta)
         
         return [lx, ly, theta]
@@ -93,10 +93,10 @@ class SensorModel:
                 break
             
             #update x and y coordinates
-            cx = cx - np.cos(theta)
+            cx = cx + np.cos(theta)
             cy = cy + np.sin(theta)
             
-            #self.rays[int(cy)][int(cx)] = -2
+            self.rays[int(cy)][int(cx)] = -2
             #print("ray = ", cx, cy)
             
         z_gt = math.sqrt((cx-rx)**2 + (cy-ry)**2)    
@@ -188,6 +188,9 @@ class SensorModel:
         
         #perform ray casting to find GT ranges at various angles
         z_gt = self.get_true_ranges(x_sensor)
+        
+        #sample laser measurements
+        z_t1_arr = z_t1_arr[::self._subsampling]
         
         #find probabilities
         p1, p2, p3, p4 = self.sensor_probs(z_t1_arr, z_gt)

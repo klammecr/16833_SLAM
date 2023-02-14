@@ -148,7 +148,6 @@ if __name__ == '__main__':
             """
             x_t0 = X_bar[m, 0:3]
             x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-            X_bar_new[m, 0:3] = x_t1
 
             """
             SENSOR MODEL
@@ -167,16 +166,18 @@ if __name__ == '__main__':
         """
         RESAMPLING
         """
-        X_bar = resampler.multinomial_sampler(X_bar)
+        # X_bar = resampler.multinomial_sampler(X_bar)
         X_bar = resampler.low_variance_sampler(X_bar)
 
         if args.visualize:
-            import matplotlib.colors as colors
-            colors_list = list(colors.CSS4_COLORS.keys())
-            plt.figure(2)
-            if time_idx == 1:
-                plt.scatter(x_t0[0], x_t0[1], c = "k")
-            plt.plot(np.linspace(x_t0[0], x_t1[0], 5), np.linspace(x_t0[1], x_t1[1], 5), color = colors_list[time_idx % len(colors_list)])
-            plt.figure(1)
-            visualize_timestep(x_t1.reshape(1, -1), time_idx, args.output)
-            #visualize_timestep(X_bar, time_idx, args.output)
+            # DEBUG: Just motion model
+            # import matplotlib.colors as colors
+            # colors_list = list(colors.CSS4_COLORS.keys())
+            # plt.figure(2)
+            # if time_idx == 1:
+            #     plt.scatter(x_t0[0], x_t0[1], c = "k")
+            # plt.plot(np.linspace(x_t0[0], x_t1[0], 5), np.linspace(x_t0[1], x_t1[1], 5), color = colors_list[time_idx % len(colors_list)])
+
+            # plt.figure(1)
+            # visualize_timestep(x_t1.reshape(1, -1), time_idx, args.output)
+            visualize_timestep(X_bar, time_idx, args.output)

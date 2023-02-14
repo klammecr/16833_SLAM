@@ -151,7 +151,7 @@ class SensorModel:
             if p <= q:
                 n = 1/(1 - math.exp(-self._lambda_short*q))
                 prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
-        p2.append(prob)
+            p2.append(prob)
         
         #max probability
         for (p, q) in zip(z_t, z_gt):

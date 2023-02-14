@@ -37,4 +37,23 @@ class Resampling:
         TODO : Add your code here
         """
         X_bar_resampled =  np.zeros_like(X_bar)
+        
+        #normalize weights
+        w = X_bar[:,-1]
+        w = w/np.sum(w)
+        
+        #initialize some values
+        M = X_bar.shape[0]
+        r = np.random.uniform(0, 1/M)
+        c = w[0]
+        idx = 0
+        
+        #iterate M times
+        for m in range(0, M):
+            U = r + (m-1)*(1/M)
+            while U > c:
+                idx+=1
+                c = c + w[idx]
+            X_bar_resampled[m] = X_bar[idx]
+        
         return X_bar_resampled

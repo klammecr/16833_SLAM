@@ -31,8 +31,8 @@ class MapReader:
 
     def visualize_map(self):
         fig = plt.figure()
-        mng = plt.get_current_fig_manager()
-        mng.resize(*mng.window.maxsize())
+        #mng = plt.get_current_fig_manager()
+        #mng.resize(*mng.window.maxsize())
         plt.ion()
         plt.imshow(self._occupancy_map, cmap='Greys')
         plt.axis([0, 800, 0, 800])
@@ -51,7 +51,7 @@ class MapReader:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_to_map', default='../data/map/wean.dat')
+    parser.add_argument('--path_to_map', default='./../data/map/wean.dat')
     args = parser.parse_args()
 
     src_path_map = args.path_to_map

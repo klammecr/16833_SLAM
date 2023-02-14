@@ -103,4 +103,3 @@ class Resampling:
         plt.axis('off')
         plt.legend()
         plt.show()
-        pass

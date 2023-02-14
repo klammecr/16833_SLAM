@@ -43,6 +43,7 @@ class Resampling:
         """
         # Resampled particles
         X_bar_resampled =  np.zeros_like(X_bar)
+<<<<<<< HEAD
 
         # Init variables
         M      = X_bar.shape[0]
@@ -103,3 +104,6 @@ class Resampling:
         plt.axis('off')
         plt.legend()
         plt.show()
+=======
+        return X_bar_resampled
+>>>>>>> origin/hw1_sk

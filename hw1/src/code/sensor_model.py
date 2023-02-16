@@ -59,6 +59,9 @@ class SensorModel:
         # Store rays
         self.rays = self.map._occupancy_map.copy()
         
+        # Small probability value
+        self.eps = 1e-5
+        
     def sensor_location(self, x):
         """Find sensor's position based on state of robot
         Args:
@@ -264,6 +267,8 @@ class SensorModel:
             self._z_short*p2 + \
             self._z_max*p3 + \
             self._z_rand*p4
+        
+        p = p + self.eps
         
         #sum of log probabilities
         prob_log = np.sum(np.log(p))

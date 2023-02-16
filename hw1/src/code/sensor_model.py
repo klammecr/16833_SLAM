@@ -37,7 +37,7 @@ class SensorModel:
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
 
-        # Used in sampling angles in ray casting
+        # Used in sampling angles in ray casting in degrees
         self._subsampling = 5
         
         # Store oocupancy map
@@ -53,54 +53,57 @@ class SensorModel:
             x (list): state of robot represented by a particle
         """
         #get x, y, theta of robot from state
-        rx, ry, theta = x
+        rx_cm, ry_cm, theta_rad = x
         
         #distance of laser in front of robot
-        r = 25
+        r_cm = 25
         
         #compute laser's location
-        lx = rx + r*np.cos(theta) 
-        ly = ry + r*np.sin(theta)
+        lx_cm = rx_cm + r_cm*np.cos(theta_rad) 
+        ly_cm = ry_cm + r_cm*np.sin(theta_rad)
         
-        return [lx, ly, theta]
+        return [lx_cm, ly_cm, theta_rad]
     
-    def ray_casting(self, x, angle):
+    def ray_casting(self, x, angle_rad):
         """ray casting algorithm to find true range 
 
         Args:
             x (list): state of the range sensor represented by a particle
             angle (int): angle of laser beam
         """
+        if angle_rad > np.pi or angle_rad <-np.pi:
+            raise ValueError("Angle must be in radians and in the range [-pi, pi]")
+
         #unpack particle
-        rx, ry, rtheta = x
+        rx_cm, ry_cm, rtheta_rad = x
         
         #measure angle of laser beam in global reference frame
-        theta = rtheta + angle
+        theta_rad = rtheta_rad + angle_rad
         
         #perform ray casting
         #initialize positions to positions of range sensor
-        cx, cy = rx, ry
+        cx_cm, cy_cm = rx_cm, ry_cm
         
         #iterate till wall is hit or the ray reaaches edge of map
         while True:
             #if ray goes beyond edge
-            if cx < 0 or cx > self.map._size_x - 1 or \
-                cy < 0 or cy > self.map._size_y - 1:
+            if cx_cm < 0 or cx_cm > self.map._size_x - 1 or \
+                cy_cm < 0 or cy_cm > self.map._size_y - 1:
                     break
             
             #if ray hits the wall
-            if self.map._occupancy_map[int(cy/self.map._resolution)][int(cx/self.map._resolution)] != 0:
+            if self.map._occupancy_map[int(cy_cm/self.map._resolution)][int(cx_cm/self.map._resolution)] != 0:
                 break
             
             #update x and y coordinates
-            cx = cx + np.cos(theta)
-            cy = cy + np.sin(theta)
+            cx_cm = cx_cm + np.cos(theta_rad)
+            cy_cm = cy_cm + np.sin(theta_rad)
             
-            self.rays[int(cy/self.map._resolution)][int(cx/self.map._resolution)] = -2
+            self.rays[int(cy_cm/self.map._resolution)][int(cx_cm/self.map._resolution)] = -2
             #print("ray = ", cx, cy)
             
-        z_gt = math.sqrt((cx-rx)**2 + (cy-ry)**2)    
-        return z_gt
+        z_gt_cm = math.sqrt((cx_cm-rx_cm)**2 + (cy_cm-ry_cm)**2)    
+        return z_gt_cm
     
     def get_true_ranges(self, x):
         """function to find true range for a given state(x,y,theta) of robot
@@ -109,7 +112,7 @@ class SensorModel:
             x (list): state of range sensor
         """
         #array to store true ranges
-        z_gt = []
+        z_gt_cm = []
         
         #iterate based on subsampling
         for i in range(0, 180, self._subsampling):
@@ -117,9 +120,9 @@ class SensorModel:
             z_scaled = self.ray_casting(x, i*(math.pi/180))
             
             #add range to list
-            z_gt.append(z_scaled)
+            z_gt_cm.append(z_scaled)
         
-        return np.array(z_gt)
+        return np.array(z_gt_cm)
     
     def calc_p_hit(self, z_t, z_gt):
         """

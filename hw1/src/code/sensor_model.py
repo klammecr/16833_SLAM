@@ -270,5 +270,6 @@ if __name__ == "__main__":
     print(z_gt)
     
     # Visualize the map with the rays
+    plt.imshow(sm.rays)
     map1.visualize_rays(sm.rays)
     plt.savefig('./rays.png')

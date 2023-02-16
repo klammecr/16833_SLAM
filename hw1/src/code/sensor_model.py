@@ -134,41 +134,53 @@ class SensorModel:
         #initialize probabilities
         p1, p2, p3, p4 = [], [], [], []
         
-        #hit probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if z_t <= self._max_range:
-                #compute normalization factor
-                n = 1/norm.cdf(self._max_range, loc=q, scale=self._sigma_hit)
-                #compute probability
-                prob = n*math.exp(-0.5*((p-q)/self._sigma_hit)**2)
-            
-            p1.append(prob)
-            
-        #short probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p <= q:
-                n = 1/(1 - math.exp(-self._lambda_short*q))
-                prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
-            p2.append(prob)
+        #HIT PROBABILITY
+        #initialize probabilties
+        p1 = np.zeros(len(z_t))
         
-        #max probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p > self._max_range:
-                prob = 1
-                 
-            p3.append(prob)
+        #mask for non zero probabilities
+        mask = z_t <= self._max_range
         
-        #rand probability
-        for (p, q) in zip(z_t, z_gt):
-            prob = 0
-            if p < self._max_range:
-                prob = 1/(self._max_range)
+        #compute normalization factors
+        n = 1/norm.cdf(self._max_range, loc=z_gt[mask], scale=self._sigma_hit)
+        
+        #compute probabilities
+        p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
+                        
+        #SHORT PROBABILITY
+        #initialize probabilties    
+        p2 = np.zeros(len(z_t))
+        
+        #mask for non zero probabilities
+        mask = z_t <= z_gt
+
+        #compute normalization factors
+        n = 1/(1 - math.exp(-self._lambda_short*z_gt[mask]))
+        
+        #compute probabilties
+        p2[mask] =  n*self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
+            
+        
+        #MAX PROBABILITY
+        #initialize probabilties    
+        p3 = np.zeros(len(z_t))
+        
+        #mask for non zero probabilities
+        mask = z_t > self._max_range
+        
+        #compute probabilities
+        p3[mask] = 1
+        
+        #RAND PROBABILITY
+        #initialize probabilties    
+        p4 = np.zeros(len(z_t))
+        
+        #mask for non zero probabilities
+        mask = z_t < self._max_range
+        
+        #compute probabilities
+        p4[mask] = 1/(self._max_range)
                 
-            p4.append(prob)
-        
         return p1, p2, p3, p4
         
 

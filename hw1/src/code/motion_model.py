@@ -33,9 +33,15 @@ class MotionModel:
              float: The wrapped angle of range [-pi, pi)
         """
         # Put the range to [0, 360) then take the modulo in case we go over
-        angle_wrap = fmod((angle + np.pi), 2*np.pi)
-        if angle_wrap < 0:
-            angle_wrap += 2*np.pi
+        angle_wrap = np.fmod((angle + np.pi), 2*np.pi)
+
+        # Check for if the angle is less than 0
+        if type(angle) is np.ndarray:
+            angle_wrap[angle_wrap < 0] += 2*np.pi
+        else:
+            if angle_wrap < 0:
+                angle_wrap += 2*np.pi
+
         angle_wrap -= np.pi
         return angle_wrap
 
@@ -68,8 +74,24 @@ class MotionModel:
         delta_rot_2 -= self.wrap_angle( np.random.normal(0.0, delta_rot_2_var**0.5))
 
         # Estimate the pose of the robot at time t
-        x_t1[0] = x_t0[0] + delta_trans * cos(x_t0[2] + delta_rot_1)
-        x_t1[1] = x_t0[1] + delta_trans * sin(x_t0[2] + delta_rot_1)
-        x_t1[2] = self.wrap_angle(x_t0[2] + delta_rot_1 + delta_rot_2)
+        x_t1[:, 0] = x_t0[:, 0] + delta_trans * np.cos(x_t0[:, 2] + delta_rot_1)
+        x_t1[:, 1] = x_t0[:, 1] + delta_trans * np.sin(x_t0[:, 2] + delta_rot_1)
+        x_t1[:, 2] = self.wrap_angle(x_t0[:, 2] + delta_rot_1 + delta_rot_2)
         
         return x_t1
+    
+    
+    def update_vec(self, u_t0, u_t1, x_t0):
+        """
+        param[in] u_t0 : particle state odometry reading [x, y, theta] at time (t-1) [odometry_frame]
+        param[in] u_t1 : particle state odometry reading [x, y, theta] at time t [odometry_frame]
+        param[in] x_t0 : particle state belief [x, y, theta] at time (t-1) [world_frame]
+        param[out] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
+        """
+        pass
+        # See if there is consequential motion
+        if np.sum(np.abs(u_t1 - u_t0)) <= 1e-10:
+            return x_t0
+        
+        # Output vector for the pose at time t
+        x_t1 = np.zeros_like(x_t0)

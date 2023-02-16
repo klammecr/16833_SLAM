@@ -137,7 +137,7 @@ class SensorModel:
             #add range to list
             z_gt_cm.append(z_gt_angle)
         
-        return z_gt_cm
+        return np.array(z_gt_cm)
     
     def get_true_ranges_vectorized(self, x):
         """function to find true range for a given state(x,y,theta) of robot using vectorized implementation
@@ -257,7 +257,7 @@ class SensorModel:
         mask = z_t <= z_gt
 
         #compute normalization factors
-        n = 1/(1 - math.exp(-self._lambda_short*z_gt[mask]))
+        n = 1/(1 - np.exp(-self._lambda_short*z_gt[mask]))
         
         #compute probabilties
         p2[mask] =  n*self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
@@ -323,14 +323,7 @@ class SensorModel:
         # sum of log probabilities
         prob_log = np.sum(np.log(p))
 
-        # apply softmax
-        prob_log = prob_log -  prob_log.max()
-        prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
-
-        if np.sum(prob) != 1.0:
-            raise ValueError("Probabilities must add up to 1")
-        
-        return prob
+        return prob_log
 
 
 if __name__ == "__main__":

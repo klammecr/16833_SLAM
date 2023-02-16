@@ -157,26 +157,41 @@ if __name__ == '__main__':
         X_bar_new = np.zeros((num_particles, 4), dtype=np.float64)
         u_t1 = odometry_robot
 
+        # Vectorize it
+        z_t  = ranges
+        
+        """ MOTION MODEL """
+        x_t0 = X_bar[:, :3]
+        x_t1 = motion_model.update(u_t0, u_t1, x_t0)
+        # w_t  = sensor_model.beam_range_finder_model_vec(z_t, x_t1)
+
         # Note: this formulation is intuitive but not vectorized; looping in python is SLOW.
         # Vectorized version will receive a bonus. i.e., the functions take all particles as the input and process them in a vector.
         for m in range(0, num_particles):
             """
-            MOTION MODEL
-            """
-            x_t0 = X_bar[m, 0:3]
-            x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-
-            """
             SENSOR MODEL
             """
             if (meas_type == "L"):
-                z_t = ranges
-                w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
-                X_bar_new[m, :] = np.hstack((x_t1, w_t))
+                # Find the log probabilities
+                w_t = sensor_model.beam_range_finder_model(z_t, x_t1[m])
+                
+                X_bar_new[m, :] = np.hstack((x_t1[m], w_t))
             else:
-                X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
+                X_bar_new[m, :] = np.hstack((x_t1[m], X_bar[m, 3]))
 
-        
+        #convert log probabilities into probabilities
+        prob_log = X_bar_new[:,-1]
+
+        # TODO: TEMPORARY HACK, WE NEED TO VECTORIZE TO MAKE THIS RUN SMOOTH
+        # THIS IS HERE FOR THE ELSE CASE WHEN WE DONT GET LOG PROBS
+        if np.sum(prob_log) != 1.0:
+            #apply softmax
+            prob_log = prob_log -  prob_log.max()
+            prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
+            
+            #add probabilities to particle parameters
+            X_bar_new[:,-1] = prob
+
         # Add probabilities to particle parameters
         X_bar = X_bar_new
         u_t0 = u_t1

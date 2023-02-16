@@ -3,95 +3,21 @@
     Initially written by Paloma Sodhi (psodhi@cs.cmu.edu), 2018
     Updated by Wei Dong (weidong@andrew.cmu.edu), 2021
 '''
-
+# Third Party
 import argparse
 import numpy as np
 import sys, os
 import cv2 as cv2
-
-from map_reader import MapReader
-from motion_model import MotionModel
-from sensor_model import SensorModel
-from resampling import Resampling
-
 from matplotlib import pyplot as plt
 from matplotlib import figure as fig
 import time
 
-
-class Visualizer():
-    def __init__(self, steps = 10, output_path=""):
-        self.prev_state  = None
-        self.steps       = steps
-        self.output_path = output_path
-
-    def visualize_map(self, occupancy_map):
-        fig = plt.figure()
-        mng = plt.get_current_fig_manager()
-        plt.ion()
-        plt.imshow(occupancy_map, cmap='Greys')
-        plt.axis([0, 800, 0, 800])
-
-    def visualize_timestep(self, X_bar, tstep):
-        # Plot the location
-        x_locs_pix = X_bar[:, 0] / 10.0
-        y_locs_pix = X_bar[:, 1] / 10.0
-        scat = plt.scatter(x_locs_pix, y_locs_pix, s = 10, c='r', marker='o')
-
-        # Create a green line to visualize the orientation of the robot
-        orientation_rad = X_bar[:, 2]
-        x_end = x_locs_pix + self.steps * np.cos(orientation_rad)
-        y_end = y_locs_pix + self.steps * np.sin(orientation_rad)
-        orient_line = plt.plot(np.linspace(x_locs_pix, x_end, self.steps), np.linspace(y_locs_pix, y_end, self.steps), "g-", linewidth=1)
-
-        # Sketch a line for the trajectory
-        if self.prev_state is not None:
-            dx = self.prev_state[0] - x_locs_pix
-            dy = self.prev_state[1] - y_locs_pix
-            for i in range(len(dx)):
-                # If the particle gets resampled, don't trace it
-                if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
-                    plt.plot([self.prev_state[0][i], x_locs_pix[i]], [self.prev_state[1][i], y_locs_pix[i]], "r-", linewidth = 1)
-        
-        # Update prev
-        self.prev_state = [x_locs_pix, y_locs_pix]
-
-        # Save the figure
-        plt.savefig('{}/{:04d}.png'.format(self.output_path, tstep))
-        plt.pause(0.00001)
-        scat.remove()
-
-        # Remove the line for the orientation
-        for idx, line in enumerate(orient_line):
-            line.remove()
-        del orient_line
-
-
-def visualize_timestep(X_bar, tstep, occupancy_map, resolution=10.0):
-    #compute coordiantes
-    x_locs = X_bar[:, 0] // resolution
-    y_locs = X_bar[:, 1] // resolution
-
-    x_locs = x_locs.astype('int')
-    y_locs = y_locs.astype('int')
-    
-    #deep copy of map
-    occ_map = occupancy_map.copy()
-    
-    #scale and convert map to 3 channels
-    #scale
-    occ_map[occ_map < 0] = 0
-    occ_map = (occ_map - occ_map.min())/(occ_map.max() - occ_map.min())
-    occ_map = (occ_map*255).astype('uint8')
-    
-    #stack
-    occ_map = occ_map[:,:,None]
-    occ_map = np.stack((occ_map, occ_map, occ_map), axis=-1)
-    
-    #add particles to map
-    occ_map[y_locs, x_locs, -1] = 255
-    
-    return occ_map
+# In House
+from map_reader import MapReader
+from motion_model import MotionModel
+from sensor_model import SensorModel
+from resampling import Resampling
+from visualizer import Visualizer
 
 def init_particles_random(num_particles, occupancy_map):
 
@@ -172,42 +98,31 @@ if __name__ == '__main__':
     parser.add_argument('--visualize', action='store_true')
     parser.add_argument('--video', action='store_true')
     args = parser.parse_args()
-
-    src_path_map = args.path_to_map
-    src_path_log = args.path_to_log
     os.makedirs(args.output, exist_ok=True)
 
-    map_obj = MapReader(src_path_map)
+    # Load in occupancy map
+    src_path_map  = args.path_to_map
+    src_path_log  = args.path_to_log
+    map_obj       = MapReader(src_path_map)
     occupancy_map = map_obj.get_map()
-    logfile = open(src_path_log, 'r')
+    logfile       = open(src_path_log, 'r')
 
+    # Create necessary objects for motion, sensor, and resampling
     motion_model = MotionModel()
     sensor_model = SensorModel(map_obj)
-    resampler = Resampling()
+    resampler    = Resampling()
 
-    vis = Visualizer(10, args.output)
+    # Setup the visualizer
+    if args.visualize:
+        vis = Visualizer(occupancy_map, args.output, video = args.video)
 
+    # Create init particles
     num_particles = args.num_particles
-    X_bar = init_particles_freespace(num_particles, map_obj)
-    
-    #initialize video writer
-    video_writer = None
-    if args.video:
-        #format
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        
-        #resolution of frames
-        dim = occupancy_map.shape[0]
-        
-        #video writer instance
-        video_writer = cv2.VideoWriter(os.path.join(args.output, 'output.mp4'), fourcc, (dim, dim))        
+    X_bar = init_particles_freespace(num_particles, map_obj)     
     
     """
     Monte Carlo Localization Algorithm : Main Loop
     """
-    if args.visualize:
-        vis.visualize_map(occupancy_map)
-
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
 
@@ -226,14 +141,13 @@ if __name__ == '__main__':
         # if ((time_stamp <= 0.0) | (meas_type == "O")):
         #     continue
 
+        print(f"Processing time step {time_idx} at time {time_stamp}")
+
         if (meas_type == "L"):
             # [x, y, theta] coordinates of laser in odometry frame
             odometry_laser = meas_vals[3:6]
             # 180 range measurement values from single laser scan
             ranges = meas_vals[6:-1]
-
-        print("Processing time step {} at time {}s".format(
-            time_idx, time_stamp))
 
         if first_time_idx:
             u_t0 = odometry_robot
@@ -262,17 +176,8 @@ if __name__ == '__main__':
             else:
                 X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
 
-        #convert log probabilities into probabilities
-        prob_log = X_bar_new[:,-1]
         
-        #apply softmax
-        prob_log = prob_log -  prob_log.max()
-        prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
-        
-        #add probabilities to particle parameters
-        X_bar_new[:,-1] = prob
-        
-        
+        # Add probabilities to particle parameters
         X_bar = X_bar_new
         u_t0 = u_t1
 
@@ -282,14 +187,8 @@ if __name__ == '__main__':
         # X_bar = resampler.multinomial_sampler(X_bar)
         X_bar = resampler.low_variance_sampler(X_bar)
 
-        if args.visualize:
-            map_vis = vis.visualize_timestep(X_bar, time_idx, occupancy_map, map_obj._resolution)
-            cv2.imshow('Output', map_vis)
-            if args.video:
-                video_writer.write(map_vis)
-    
-    if args.visualize:
-        cv2.destroyAllWindows()
-        if args.video:
-            video_writer.release()
-            # visualize_timestep(x_t1.reshape(1, -1), time_idx, args.output)
+        # Visualize
+        vis.visualize_timestep(X_bar, time_stamp)
+
+    # Explicitly delete the visualizer, just in case
+    del vis

@@ -88,7 +88,7 @@ class SensorModel:
         lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
-        theta = (ltheta + angle) - math.pi/2
+        theta = (ltheta + angle_rad) - math.pi/2
         
         #perform ray casting
         #initialize positions to positions of range sensor
@@ -116,7 +116,7 @@ class SensorModel:
             self.rays[cy_p][cx_p] = -2
             #print("ray = ", cy, cx, self.rays[cy_p][cx_p])
             
-        z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)
+        z_gt_cm = math.sqrt((cx-lx)**2 + (cy-ly)**2)
 
         return z_gt_cm
     
@@ -135,9 +135,9 @@ class SensorModel:
             z_gt_angle = self.ray_casting(x, i*(math.pi/180))
                         
             #add range to list
-            z_gt.append(z_gt_angle)
+            z_gt_cm.append(z_gt_angle)
         
-        return z_gt
+        return z_gt_cm
     
     def get_true_ranges_vectorized(self, x):
         """function to find true range for a given state(x,y,theta) of robot using vectorized implementation
@@ -300,22 +300,18 @@ class SensorModel:
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
         """
-        prob_zt1 = 1.0
-        
-        #find laser position based on robot position
+        # find laser position based on robot position
         x_sensor = self.sensor_location(x_t1)
         
-        #perform ray casting to find GT ranges at various angles
+        # perform ray casting to find GT ranges at various angles
         z_gt_cm = self.get_true_ranges(x_sensor)
         
-        #sample laser measurements
+        # sample laser measurements
         z_t1_cm = z_t1_cm[::self._subsampling]
         
-        #find probabilities
+        # find probabilities
         p1, p2, p3, p4 = self.sensor_probs(z_t1_cm, z_gt_cm)
         
-        # TODO: logsumexp for numerical stability
-        #aggregate probabilities
         # Validate the sum of the mixing parameters is 1
         sum_z = self._z_hit + self._z_short + self._z_max + self._z_rand
 
@@ -324,10 +320,17 @@ class SensorModel:
             (self._z_max   / sum_z) * p3 + \
             (self._z_rand  / sum_z) * p4
         
-        #sum of log probabilities
+        # sum of log probabilities
         prob_log = np.sum(np.log(p))
+
+        # apply softmax
+        prob_log = prob_log -  prob_log.max()
+        prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
+
+        if np.sum(prob) != 1.0:
+            raise ValueError("Probabilities must add up to 1")
         
-        return prob_log
+        return prob
 
 
 if __name__ == "__main__":

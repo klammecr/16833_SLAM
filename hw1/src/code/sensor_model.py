@@ -4,6 +4,7 @@
     Updated by Wei Dong (weidong@andrew.cmu.edu), 2021
 '''
 
+from multiprocessing import Pool
 import numpy as np
 import math
 import time
@@ -38,10 +39,22 @@ class SensorModel:
         self._min_probability = 0.35
 
         # Used in sampling angles in ray casting
-        self._subsampling = 5
+        self._subsampling = 1
+        
+        # Number of processes to be used for subsampling
+        self.num_processes = 8
         
         # Store oocupancy map
         self.map = occupancy_map
+        
+        # Dimensions of occupancy map
+        self.h, self.w = self.map._occupancy_map.shape
+        
+        # Distance that ray can skip during casting iterations
+        self.ray_skip_dist = 10
+        
+        #separation between laser and robot center in cm
+        self.laser_loc = 25
 
         # Store rays
         self.rays = self.map._occupancy_map.copy()
@@ -55,12 +68,9 @@ class SensorModel:
         #get x, y, theta of robot from state
         rx, ry, theta = x
         
-        #distance of laser in front of robot
-        r = 25
-        
         #compute laser's location
-        lx = rx + r*np.cos(theta) 
-        ly = ry + r*np.sin(theta)
+        lx = rx + self.laser_loc*np.cos(theta) 
+        ly = ry + self.laser_loc*np.sin(theta)
         
         return [lx, ly, theta]
     
@@ -69,13 +79,13 @@ class SensorModel:
 
         Args:
             x (list): state of the range sensor represented by a particle
-            angle (int): angle of laser beam
+            angle (float): angle of laser beam
         """
         #unpack particle
         lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
-        theta = ltheta + angle
+        theta = math.pi/2 - (ltheta + angle)
         
         #perform ray casting
         #initialize positions to positions of range sensor
@@ -83,21 +93,25 @@ class SensorModel:
         
         #iterate till wall is hit or the ray reaches edge of map
         while True:
+            #convert cm into px
+            cx_p = math.floor(cx/self.map._resolution)
+            cy_p = math.floor(cy/self.map._resolution)
+            
             #if ray goes beyond edge
-            if cx < 0 or cx > self.map._size_x - 1 or \
-                cy < 0 or cy > self.map._size_y - 1:
+            if cx_p < 0 or cx_p > self.w - 1 or \
+                cy_p < 0 or cy_p > self.h - 1:
                     break
             
             #if ray hits the wall
-            if self.map._occupancy_map[int(cy)][int(cx)] != 0:
+            if self.map._occupancy_map[cy_p][cx_p] != 0:
                 break
             
             #update x and y coordinates
-            cx = cx + np.cos(theta)
-            cy = cy + np.sin(theta)
+            cx = cx + self.ray_skip_dist*np.cos(theta)
+            cy = cy + self.ray_skip_dist*np.sin(theta)
             
-            self.rays[int(cy)][int(cx)] = -2
-            #print("ray = ", cx, cy)
+            self.rays[cy_p][cx_p] = -2
+            #print("ray = ", cy, cx, self.rays[cy_p][cx_p])
             
         z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)    
         return z_gt
@@ -114,15 +128,35 @@ class SensorModel:
         #iterate based on subsampling
         for i in range(1, 181, self._subsampling):
             #compute range using ray casting
-            z_unscaled = self.ray_casting(x, i*(math.pi/180))
-            
-            #scale range using map resolution
-            z_scaled = z_unscaled * self.map._resolution
-            
+            z_gt_angle = self.ray_casting(x, i*(math.pi/180))
+                        
             #add range to list
-            z_gt.append(z_scaled)
+            z_gt.append(z_gt_angle)
         
         return z_gt        
+    
+    def get_true_ranges_vectorized(self, x):
+        """function to find true range for a given state(x,y,theta) of robot using vectorized implementation
+
+        Args:
+            x (list): state of range sensor
+        """
+        #array to store true ranges
+        z_gt = []
+        
+        #store angles at which rays are cast
+        angles = np.arange(1, 181, self._subsampling)
+        
+        #create list of arguments
+        arg_list = []
+        for a in angles:
+            arg_list.append((x, a*(math.pi/180)))
+        
+        #paralelized ray casting
+        p = Pool(self.num_processes)
+        z_gt = p.starmap(self.ray_casting, arg_list)       
+        
+        return z_gt
     
     def sensor_probs(self, z_t, z_gt):
         """function to compute probabiltiies of measurement
@@ -225,8 +259,20 @@ if __name__ == "__main__":
 
     sm = SensorModel(map1)
     
-    z_gt = sm.get_true_ranges([590, 145, 0])
-    print(z_gt)
+    t1 = time.time()
+    for n in range(500):
+        z_gt_1 = sm.get_true_ranges([5900, 1450, 0])
+        t2 = time.time()
+    
+    # t3 = time.time()
+    # z_gt_2 = sm.get_true_ranges_vectorized([590, 145, 0])
+    # t4 = time.time()
+    
+    #print(z_gt_1[0::10])
+    # print(z_gt_2[0::10])
+    
+    print(t2-t1)
+    # print(t4-t3)
     
     #plt.imshow(sm.map._occupancy_map, 'gray')
     plt.imshow(sm.rays, 'gray')

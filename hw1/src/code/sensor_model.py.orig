@@ -224,9 +224,16 @@ class SensorModel:
             z_t (list): measured data
             z_gt (list): ground truth data
         """
-        #initialize probabilities
+        # initialize probabilities
         p1, p2, p3, p4 = [],[],[],[]
-        
+
+        # # Combining into one for loop
+        # for p, q in zip(z_t, z_gt):
+        #     p1.append(self.calc_p_hit(p, q))
+        #     p2.append(self.calc_p_short(p, q))
+        #     p3.append(self.calc_p_max(p))
+        #     p4.append(self.calc_p_rand())
+
         #HIT PROBABILITY
         #initialize probabilties
         p1 = np.zeros(len(z_t))
@@ -236,19 +243,13 @@ class SensorModel:
         
         #compute normalization factors
         n = 1/norm.cdf(self._max_range, loc=z_gt[mask], scale=self._sigma_hit)
-        #         #compute probability
-        #         prob = n*math.exp(-0.5*((p-q)/self._sigma_hit)**2)
-            
+        
         #compute probabilities
         p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
                         
         #SHORT PROBABILITY
         #initialize probabilties    
         p2 = np.zeros(len(z_t))
-        #     if p <= q:
-        #         n = 1/(1 - math.exp(-self._lambda_short*q))
-        #         prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
-        #     p2.append(prob)
         
         #mask for non zero probabilities
         mask = z_t <= z_gt
@@ -280,15 +281,7 @@ class SensorModel:
         #compute probabilities
         p4[mask] = 1/(self._max_range)
                 
-        # #rand probability
-        # for (p, q) in zip(z_t, z_gt):
-        #     prob = 0
-        #     if p < self._max_range:
-        #         prob = 1/(self._max_range)
-                
-        #     p4.append(prob)
-        
-        return np.array(p1), np.array(p2), np.array(p3), np.array(p4)
+        return p1, p2, p3, p4
         
 
     def beam_range_finder_model(self, z_t1_cm, x_t1):
@@ -296,9 +289,7 @@ class SensorModel:
         param[in] z_t1_cm : laser range readings [array of 180 values] at time t in centimeters
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
-        """
-        prob_zt1 = 1.0
-        
+        """      
         #find laser position based on robot position
         x_sensor = self.sensor_location(x_t1)
         

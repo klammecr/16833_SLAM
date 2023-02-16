@@ -154,8 +154,10 @@ if __name__ == '__main__':
     sensor_model = SensorModel(map_obj)
     resampler = Resampling()
 
+    # Sampling particles
     num_particles = args.num_particles
-    X_bar = init_particles_freespace(num_particles, map_obj)
+    # X_bar = init_particles_random(num_particles, occupancy_map)
+    X_bar = init_particles_freespace(num_particles, occupancy_map)
     
     #initialize video writer
     video_writer = None
@@ -226,8 +228,9 @@ if __name__ == '__main__':
                 z_t = ranges
                 w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
                 X_bar_new[m, :] = np.hstack((x_t1, w_t))
-            else:
-                X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
+                
+            # else:
+            #     X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
 
         #convert log probabilities into probabilities
         prob_log = X_bar_new[:,-1]
@@ -259,4 +262,3 @@ if __name__ == '__main__':
         cv2.destroyAllWindows()
         if args.video:
             video_writer.release()
-            # visualize_timestep(x_t1.reshape(1, -1), time_idx, args.output)

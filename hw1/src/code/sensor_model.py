@@ -266,10 +266,10 @@ class SensorModel:
             self._z_max*p3 + \
             self._z_rand*p4
         
-        #multiply probabilities
-        prob_zt1 = np.prod(p)
+        #sum of log probabilities
+        prob_log = np.sum(np.log(p))
         
-        return prob_zt1
+        return prob_log
 
 
 if __name__ == "__main__":

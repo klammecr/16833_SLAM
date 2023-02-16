@@ -228,9 +228,21 @@ if __name__ == '__main__':
                 z_t = ranges
                 w_t = sensor_model.beam_range_finder_model(z_t, x_t1)
                 X_bar_new[m, :] = np.hstack((x_t1, w_t))
+                
             # else:
             #     X_bar_new[m, :] = np.hstack((x_t1, X_bar[m, 3]))
 
+        #convert log probabilities into probabilities
+        prob_log = X_bar_new[:,-1]
+        
+        #apply softmax
+        prob_log = prob_log -  prob_log.max()
+        prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
+        
+        #add probabilities to particle parameters
+        X_bar_new[:,-1] = prob
+        
+        
         X_bar = X_bar_new
         u_t0 = u_t1
 

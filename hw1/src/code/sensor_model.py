@@ -85,7 +85,7 @@ class SensorModel:
         lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
-        theta = math.pi/2 - (ltheta + angle)
+        theta = (ltheta + angle) - math.pi/2
         
         #perform ray casting
         #initialize positions to positions of range sensor
@@ -113,7 +113,8 @@ class SensorModel:
             self.rays[cy_p][cx_p] = -2
             #print("ray = ", cy, cx, self.rays[cy_p][cx_p])
             
-        z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)    
+        z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)
+
         return z_gt
     
     def get_true_ranges(self, x):
@@ -260,15 +261,19 @@ if __name__ == "__main__":
     sm = SensorModel(map1)
     
     t1 = time.time()
+    xx = 4110
+    yy = 5130
     for n in range(500):
-        z_gt_1 = sm.get_true_ranges([5900, 1450, 0])
+        z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
         t2 = time.time()
-    
+        
+    sm.rays[yy//10, xx//10] = -5
     # t3 = time.time()
     # z_gt_2 = sm.get_true_ranges_vectorized([590, 145, 0])
     # t4 = time.time()
     
-    #print(z_gt_1[0::10])
+    print(z_gt_1[0::10])
+    print(len(z_gt_1))
     # print(z_gt_2[0::10])
     
     print(t2-t1)

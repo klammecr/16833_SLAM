@@ -36,10 +36,10 @@ def visualize_map(occupancy_map):
 #     scat.remove()
 
 
-def visualize_timestep(X_bar, tstep, occupancy_map):
+def visualize_timestep(X_bar, tstep, occupancy_map, resolution=10.0):
     #compute coordiantes
-    x_locs = X_bar[:, 0] // 10.0
-    y_locs = X_bar[:, 1] // 10.0
+    x_locs = X_bar[:, 0] // resolution
+    y_locs = X_bar[:, 1] // resolution
 
     x_locs = x_locs.astype('int')
     y_locs = y_locs.astype('int')
@@ -166,7 +166,7 @@ if __name__ == '__main__':
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         
         #resolution of frames
-        dim = occupancy_map.shape[0]*map_obj._resolution
+        dim = occupancy_map.shape[0]
         
         #video writer instance
         video_writer = cv2.VideoWriter(os.path.join(args.output, 'output.mp4'), fourcc, (dim, dim))        
@@ -240,7 +240,7 @@ if __name__ == '__main__':
         X_bar = resampler.low_variance_sampler(X_bar)
 
         if args.visualize:
-            map_vis = visualize_timestep(X_bar, time_idx, occupancy_map)
+            map_vis = visualize_timestep(X_bar, time_idx, occupancy_map, map_obj._resolution)
             cv2.imshow('Output', map_vis)
             if args.video:
                 video_writer.write(map_vis)

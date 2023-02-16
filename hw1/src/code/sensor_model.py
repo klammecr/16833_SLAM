@@ -4,7 +4,7 @@
     Updated by Wei Dong (weidong@andrew.cmu.edu), 2021
 '''
 
-from multiprocessing import Pool
+from multiprocessing import Pool, Process, Queue
 import numpy as np
 import math
 import time
@@ -134,7 +134,7 @@ class SensorModel:
             #add range to list
             z_gt.append(z_gt_angle)
         
-        return z_gt        
+        return z_gt
     
     def get_true_ranges_vectorized(self, x):
         """function to find true range for a given state(x,y,theta) of robot using vectorized implementation
@@ -149,11 +149,29 @@ class SensorModel:
         angles = np.arange(1, 181, self._subsampling)
         
         #create list of arguments
-        arg_list = []
+        args = Queue()
+        results = Queue()
         for a in angles:
-            arg_list.append((x, a*(math.pi/180)))
+            args.put((x, a*(math.pi/180)))
+        
+        #add
+        chunk_size = len(arg_list)//self.num_processes
+        arg_list_split = []
+        arg_list_split = [arg_list[x:x+chunk_size] for x in range(0, len(arg_list), chunk_size)]
         
         #paralelized ray casting
+        processes = []
+        #start processes
+        for args in arg_list_split:
+            p = Process(target = self.ray_casting, args=(args,))
+            processes.append(p)
+            p.daemon = True
+            p.start()
+
+        #end processes
+        for p in processes:
+            p.join()
+        
         p = Pool(self.num_processes)
         z_gt = p.starmap(self.ray_casting, arg_list)       
         

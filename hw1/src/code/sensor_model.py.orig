@@ -38,11 +38,16 @@ class SensorModel:
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
 
+<<<<<<< HEAD
         # Used in sampling angles in ray casting
         self._subsampling = 1
         
         # Number of processes to be used for subsampling
         self.num_processes = 8
+=======
+        # Used in sampling angles in ray casting in degrees
+        self._subsampling = 5
+>>>>>>> hw1_ck
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -66,22 +71,35 @@ class SensorModel:
             x (list): state of robot represented by a particle
         """
         #get x, y, theta of robot from state
-        rx, ry, theta = x
+        rx_cm, ry_cm, theta_rad = x
         
+<<<<<<< HEAD
         #compute laser's location
         lx = rx + self.laser_loc*np.cos(theta) 
         ly = ry + self.laser_loc*np.sin(theta)
+=======
+        #distance of laser in front of robot
+        r_cm = 25
         
-        return [lx, ly, theta]
+        #compute laser's location
+        lx_cm = rx_cm + r_cm*np.cos(theta_rad) 
+        ly_cm = ry_cm + r_cm*np.sin(theta_rad)
+>>>>>>> hw1_ck
+        
+        return [lx_cm, ly_cm, theta_rad]
     
-    def ray_casting(self, x, angle):
+    def ray_casting(self, x, angle_rad):
         """ray casting algorithm to find true range 
 
         Args:
             x (list): state of the range sensor represented by a particle
             angle (float): angle of laser beam
         """
+        if angle_rad > np.pi or angle_rad <-np.pi:
+            raise ValueError("Angle must be in radians and in the range [-pi, pi]")
+
         #unpack particle
+<<<<<<< HEAD
         lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
@@ -90,6 +108,16 @@ class SensorModel:
         #perform ray casting
         #initialize positions to positions of range sensor
         cx, cy = lx, ly
+=======
+        rx_cm, ry_cm, rtheta_rad = x
+        
+        #measure angle of laser beam in global reference frame
+        theta_rad = rtheta_rad + angle_rad
+        
+        #perform ray casting
+        #initialize positions to positions of range sensor
+        cx_cm, cy_cm = rx_cm, ry_cm
+>>>>>>> hw1_ck
         
         #iterate till wall is hit or the ray reaches edge of map
         while True:
@@ -98,6 +126,7 @@ class SensorModel:
             cy_p = math.floor(cy/self.map._resolution)
             
             #if ray goes beyond edge
+<<<<<<< HEAD
             if cx_p < 0 or cx_p > self.w - 1 or \
                 cy_p < 0 or cy_p > self.h - 1:
                     break
@@ -116,6 +145,25 @@ class SensorModel:
         z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)
 
         return z_gt
+=======
+            if cx_cm < 0 or cx_cm > self.map._size_x - 1 or \
+                cy_cm < 0 or cy_cm > self.map._size_y - 1:
+                    break
+            
+            #if ray hits the wall
+            if self.map._occupancy_map[int(cy_cm/self.map._resolution)][int(cx_cm/self.map._resolution)] != 0:
+                break
+            
+            #update x and y coordinates
+            cx_cm = cx_cm + np.cos(theta_rad)
+            cy_cm = cy_cm + np.sin(theta_rad)
+            
+            self.rays[int(cy_cm/self.map._resolution)][int(cx_cm/self.map._resolution)] = -2
+            #print("ray = ", cx, cy)
+            
+        z_gt_cm = math.sqrt((cx_cm-rx_cm)**2 + (cy_cm-ry_cm)**2)    
+        return z_gt_cm
+>>>>>>> hw1_ck
     
     def get_true_ranges(self, x):
         """function to find true range for a given state(x,y,theta) of robot
@@ -124,7 +172,7 @@ class SensorModel:
             x (list): state of range sensor
         """
         #array to store true ranges
-        z_gt = []
+        z_gt_cm = []
         
         #iterate based on subsampling
         for i in range(0, 180, self._subsampling):
@@ -132,6 +180,7 @@ class SensorModel:
             z_gt_angle = self.ray_casting(x, i*(math.pi/180))
                         
             #add range to list
+<<<<<<< HEAD
             z_gt.append(z_gt_angle)
         
         return z_gt
@@ -176,6 +225,11 @@ class SensorModel:
         z_gt = p.starmap(self.ray_casting, arg_list)       
         
         return z_gt
+=======
+            z_gt_cm.append(z_scaled)
+        
+        return np.array(z_gt_cm)
+>>>>>>> hw1_ck
     
     def calc_p_hit(self, z_t, z_gt):
         """
@@ -224,16 +278,9 @@ class SensorModel:
             z_t (list): measured data
             z_gt (list): ground truth data
         """
-        # initialize probabilities
+        #initialize probabilities
         p1, p2, p3, p4 = [],[],[],[]
-
-        # # Combining into one for loop
-        # for p, q in zip(z_t, z_gt):
-        #     p1.append(self.calc_p_hit(p, q))
-        #     p2.append(self.calc_p_short(p, q))
-        #     p3.append(self.calc_p_max(p))
-        #     p4.append(self.calc_p_rand())
-
+        
         #HIT PROBABILITY
         #initialize probabilties
         p1 = np.zeros(len(z_t))
@@ -243,13 +290,19 @@ class SensorModel:
         
         #compute normalization factors
         n = 1/norm.cdf(self._max_range, loc=z_gt[mask], scale=self._sigma_hit)
-        
+        #         #compute probability
+        #         prob = n*math.exp(-0.5*((p-q)/self._sigma_hit)**2)
+            
         #compute probabilities
         p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
                         
         #SHORT PROBABILITY
         #initialize probabilties    
         p2 = np.zeros(len(z_t))
+        #     if p <= q:
+        #         n = 1/(1 - math.exp(-self._lambda_short*q))
+        #         prob =  n*self._lambda_short*math.exp(-self._lambda_short*p)
+        #     p2.append(prob)
         
         #mask for non zero probabilities
         mask = z_t <= z_gt
@@ -281,7 +334,15 @@ class SensorModel:
         #compute probabilities
         p4[mask] = 1/(self._max_range)
                 
-        return p1, p2, p3, p4
+        # #rand probability
+        # for (p, q) in zip(z_t, z_gt):
+        #     prob = 0
+        #     if p < self._max_range:
+        #         prob = 1/(self._max_range)
+                
+        #     p4.append(prob)
+        
+        return np.array(p1), np.array(p2), np.array(p3), np.array(p4)
         
 
     def beam_range_finder_model(self, z_t1_cm, x_t1):
@@ -289,7 +350,9 @@ class SensorModel:
         param[in] z_t1_cm : laser range readings [array of 180 values] at time t in centimeters
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
-        """      
+        """
+        prob_zt1 = 1.0
+        
         #find laser position based on robot position
         x_sensor = self.sensor_location(x_t1)
         

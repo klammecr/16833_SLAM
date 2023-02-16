@@ -38,7 +38,7 @@ class SensorModel:
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
 
-        # Used in sampling angles in ray casting
+        # Used in sampling angles in ray casting in degrees
         self._subsampling = 1
         
         # Number of processes to be used for subsampling
@@ -66,21 +66,24 @@ class SensorModel:
             x (list): state of robot represented by a particle
         """
         #get x, y, theta of robot from state
-        rx, ry, theta = x
+        rx_cm, ry_cm, theta_rad = x
         
         #compute laser's location
-        lx = rx + self.laser_loc*np.cos(theta) 
-        ly = ry + self.laser_loc*np.sin(theta)
+        lx_cm = rx_cm + self.laser_loc*np.cos(theta_rad)
+        ly_cm = ry_cm + self.laser_loc*np.sin(theta_rad)
         
-        return [lx, ly, theta]
+        return [lx_cm, ly_cm, theta_rad]
     
-    def ray_casting(self, x, angle):
+    def ray_casting(self, x, angle_rad):
         """ray casting algorithm to find true range 
 
         Args:
             x (list): state of the range sensor represented by a particle
             angle (float): angle of laser beam
         """
+        if angle_rad > np.pi or angle_rad <-np.pi:
+            raise ValueError("Angle must be in radians and in the range [-pi, pi]")
+
         #unpack particle
         lx, ly, ltheta = x
         
@@ -115,7 +118,7 @@ class SensorModel:
             
         z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)
 
-        return z_gt
+        return z_gt_cm
     
     def get_true_ranges(self, x):
         """function to find true range for a given state(x,y,theta) of robot
@@ -124,7 +127,7 @@ class SensorModel:
             x (list): state of range sensor
         """
         #array to store true ranges
-        z_gt = []
+        z_gt_cm = []
         
         #iterate based on subsampling
         for i in range(0, 180, self._subsampling):

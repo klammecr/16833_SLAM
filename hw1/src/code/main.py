@@ -19,21 +19,52 @@ from matplotlib import figure as fig
 import time
 
 
-def visualize_map(occupancy_map):
-    fig = plt.figure()
-    mng = plt.get_current_fig_manager()
-    plt.ion()
-    plt.imshow(occupancy_map, cmap='Greys')
-    plt.axis([0, 800, 0, 800])
+class Visualizer():
+    def __init__(self, steps = 10, output_path=""):
+        self.prev_state  = None
+        self.steps       = steps
+        self.output_path = output_path
 
+    def visualize_map(self, occupancy_map):
+        fig = plt.figure()
+        mng = plt.get_current_fig_manager()
+        plt.ion()
+        plt.imshow(occupancy_map, cmap='Greys')
+        plt.axis([0, 800, 0, 800])
 
-# def visualize_timestep(X_bar, tstep, output_path):
-#     x_locs = X_bar[:, 0] / 10.0
-#     y_locs = X_bar[:, 1] / 10.0
-#     scat = plt.scatter(x_locs, y_locs, c='r', marker='o')
-#     plt.savefig('{}/{:04d}.png'.format(output_path, tstep))
-#     plt.pause(0.00001)
-#     scat.remove()
+    def visualize_timestep(self, X_bar, tstep):
+        # Plot the location
+        x_locs_pix = X_bar[:, 0] / 10.0
+        y_locs_pix = X_bar[:, 1] / 10.0
+        scat = plt.scatter(x_locs_pix, y_locs_pix, s = 10, c='r', marker='o')
+
+        # Create a green line to visualize the orientation of the robot
+        orientation_rad = X_bar[:, 2]
+        x_end = x_locs_pix + self.steps * np.cos(orientation_rad)
+        y_end = y_locs_pix + self.steps * np.sin(orientation_rad)
+        orient_line = plt.plot(np.linspace(x_locs_pix, x_end, self.steps), np.linspace(y_locs_pix, y_end, self.steps), "g-", linewidth=1)
+
+        # Sketch a line for the trajectory
+        if self.prev_state is not None:
+            dx = self.prev_state[0] - x_locs_pix
+            dy = self.prev_state[1] - y_locs_pix
+            for i in range(len(dx)):
+                # If the particle gets resampled, don't trace it
+                if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
+                    plt.plot([self.prev_state[0][i], x_locs_pix[i]], [self.prev_state[1][i], y_locs_pix[i]], "r-", linewidth = 1)
+        
+        # Update prev
+        self.prev_state = [x_locs_pix, y_locs_pix]
+
+        # Save the figure
+        plt.savefig('{}/{:04d}.png'.format(self.output_path, tstep))
+        plt.pause(0.00001)
+        scat.remove()
+
+        # Remove the line for the orientation
+        for idx, line in enumerate(orient_line):
+            line.remove()
+        del orient_line
 
 
 def visualize_timestep(X_bar, tstep, occupancy_map, resolution=10.0):
@@ -154,6 +185,8 @@ if __name__ == '__main__':
     sensor_model = SensorModel(map_obj)
     resampler = Resampling()
 
+    vis = Visualizer(10, args.output)
+
     num_particles = args.num_particles
     X_bar = init_particles_freespace(num_particles, map_obj)
     
@@ -173,7 +206,7 @@ if __name__ == '__main__':
     Monte Carlo Localization Algorithm : Main Loop
     """
     if args.visualize:
-        visualize_map(occupancy_map)
+        vis.visualize_map(occupancy_map)
 
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
@@ -250,7 +283,7 @@ if __name__ == '__main__':
         X_bar = resampler.low_variance_sampler(X_bar)
 
         if args.visualize:
-            map_vis = visualize_timestep(X_bar, time_idx, occupancy_map, map_obj._resolution)
+            map_vis = vis.visualize_timestep(X_bar, time_idx, occupancy_map, map_obj._resolution)
             cv2.imshow('Output', map_vis)
             if args.video:
                 video_writer.write(map_vis)

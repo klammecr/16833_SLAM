@@ -16,7 +16,6 @@ class MotionModel:
     """
     def __init__(self):
         """
-        TODO : Tune Motion Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
         """
         self._alpha1 = 1e-5
@@ -60,10 +59,6 @@ class MotionModel:
         delta_trans = sqrt((u_t1[0] - u_t0[0]) ** 2 + (u_t1[1] - u_t0[1]) ** 2) 
         delta_rot_2 = self.wrap_angle(u_t1[2] - u_t0[2] - delta_rot_1) # This is just the angle between the translation vector and the second angle measurement
 
-        # Sample the motion noise and remove it from the delta values
-        # delta_rot_1 -= np.random.normal(loc = 0.0, scale = self._alpha1 * abs(delta_rot_1) + self._alpha2 * abs(delta_trans))
-        # delta_trans -= np.random.normal(loc = 0.0, scale = self._alpha3 * abs(delta_trans) + self._alpha4 * abs(delta_rot_1 + delta_rot_2))
-        # delta_rot_2 -= np.random.normal(loc = 0.0, scale = self._alpha1 * abs(delta_rot_2) + self._alpha2 * abs(delta_trans))
         # Remove the independent noise
         delta_rot_1_var = self._alpha1 * delta_rot_1**2 + self._alpha2 * delta_trans**2
         delta_trans_var = self._alpha3 * delta_trans**2 + self._alpha4 * (delta_rot_1**2 + delta_rot_2**2)

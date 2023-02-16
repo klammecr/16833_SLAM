@@ -199,8 +199,10 @@ if __name__ == '__main__':
         """
         RESAMPLING
         """
-        # X_bar = resampler.multinomial_sampler(X_bar)
-        X_bar = resampler.low_variance_sampler(X_bar)
+        # Only resample when there is motion
+        if np.sum(np.abs(x_t1 - x_t0)) > 1e-10:
+            # X_bar = resampler.multinomial_sampler(X_bar)
+            X_bar = resampler.low_variance_sampler(X_bar)
 
         # Visualize
         vis.visualize_timestep(X_bar, time_stamp)

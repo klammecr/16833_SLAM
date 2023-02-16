@@ -268,6 +268,7 @@ class SensorModel:
             self._z_max*p3 + \
             self._z_rand*p4
         
+        #add small probability
         p = p + self.eps
         
         #sum of log probabilities

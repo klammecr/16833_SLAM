@@ -8,6 +8,7 @@ from multiprocessing import Pool, Process, Queue
 import numpy as np
 import math
 import time
+import queue
 from matplotlib import pyplot as plt
 from scipy.stats import norm
 
@@ -42,7 +43,7 @@ class SensorModel:
         self._subsampling = 1
         
         # Number of processes to be used for subsampling
-        self.num_processes = 8
+        self.num_processes = 1
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -74,6 +75,31 @@ class SensorModel:
         
         return [lx, ly, theta]
     
+    def ray_casting_vectorized(self, arg_list, results):
+        """vectorized implementation of ray casting
+
+        Args:
+            args (Queue): Queue with input arguments
+            results (Queue): Queue that stores results
+        """
+        # while True:
+        #     #sample and input
+        #     try:
+        #         x, angle = args.get_nowait()
+        #     except queue.Empty:
+        #         break
+        #     #if sampling is successful, perform ray casting
+        #     else:
+        #         #cast a ray
+        #         z_gt_a = self.ray_casting(x, angle)
+        #         results.put([angle, z_gt_a])
+
+        #iteratively process inputs and cast rays
+        for a in arg_list:
+            x, angle = a
+            z_gt_a = self.ray_casting(x, angle)
+            results.put(z_gt_a)
+         
     def ray_casting(self, x, angle):
         """ray casting algorithm to find true range 
 
@@ -81,6 +107,7 @@ class SensorModel:
             x (list): state of the range sensor represented by a particle
             angle (float): angle of laser beam
         """
+        
         #unpack particle
         lx, ly, ltheta = x
         
@@ -148,34 +175,42 @@ class SensorModel:
         #store angles at which rays are cast
         angles = np.arange(1, 181, self._subsampling)
         
-        #create list of arguments
-        args = Queue()
+        #create list to store input arguments
+        args = []
+        
+        #create Queue to store results
         results = Queue()
         for a in angles:
-            args.put((x, a*(math.pi/180)))
+            args.append([x, a*(math.pi/180)])
         
-        #add
-        chunk_size = len(arg_list)//self.num_processes
-        arg_list_split = []
-        arg_list_split = [arg_list[x:x+chunk_size] for x in range(0, len(arg_list), chunk_size)]
+        #split inputs into chunks
+        chunk_size = len(args)//self.num_processes
+        args_list = [args[i:i+chunk_size] for i in range(0, len(args), chunk_size)]
         
-        #paralelized ray casting
-        processes = []
         #start processes
-        for args in arg_list_split:
-            p = Process(target = self.ray_casting, args=(args,))
+        processes = []
+        for a in args_list:
+            p = Process(target = self.ray_casting_vectorized, args=(a, results,))
             processes.append(p)
-            p.daemon = True
+            p.Daemon = True
             p.start()
+            print('Started process', len(a))
 
         #end processes
-        for p in processes:
+        for a in args_list:
             p.join()
         
-        p = Pool(self.num_processes)
-        z_gt = p.starmap(self.ray_casting, arg_list)       
+        #unpack results
+        while not results.empty():
+            print(results.get())
+        #print(results)
+        # z_gt = [0 for i in range(angles.size)]
         
-        return z_gt
+        # while not results.empty():
+        #     a, z = results.get()
+            
+        # return z_gt
+        return [0]
     
     def sensor_probs(self, z_t, z_gt):
         """function to compute probabiltiies of measurement
@@ -281,22 +316,25 @@ if __name__ == "__main__":
     t1 = time.time()
     xx = 4110
     yy = 5130
-    for n in range(500):
+    for n in range(1):
         z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
         t2 = time.time()
         
-    sm.rays[yy//10, xx//10] = -5
-    # t3 = time.time()
-    # z_gt_2 = sm.get_true_ranges_vectorized([590, 145, 0])
-    # t4 = time.time()
+    print(t2-t1)
     
-    print(z_gt_1[0::10])
-    print(len(z_gt_1))
+    #sm.rays[yy//10, xx//10] = -5
+    t3 = time.time()
+    for n in range(1):
+        z_gt_2 = sm.get_true_ranges_vectorized([4110, 5130, math.pi/2])
+    t4 = time.time()
+    
+    #print(z_gt_1[0::10])
+    #print(len(z_gt_1))
     # print(z_gt_2[0::10])
     
-    print(t2-t1)
-    # print(t4-t3)
+    print(t4-t3)
     
     #plt.imshow(sm.map._occupancy_map, 'gray')
     plt.imshow(sm.rays, 'gray')
     plt.savefig('./rays.png')
+    

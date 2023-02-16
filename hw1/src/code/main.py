@@ -7,6 +7,7 @@
 import argparse
 import numpy as np
 import sys, os
+import cv2 as cv2
 
 from map_reader import MapReader
 from motion_model import MotionModel
@@ -26,14 +27,40 @@ def visualize_map(occupancy_map):
     plt.axis([0, 800, 0, 800])
 
 
-def visualize_timestep(X_bar, tstep, output_path):
-    x_locs = X_bar[:, 0] / 10.0
-    y_locs = X_bar[:, 1] / 10.0
-    scat = plt.scatter(x_locs, y_locs, c='r', marker='o')
-    plt.savefig('{}/{:04d}.png'.format(output_path, tstep))
-    plt.pause(0.00001)
-    scat.remove()
+# def visualize_timestep(X_bar, tstep, output_path):
+#     x_locs = X_bar[:, 0] / 10.0
+#     y_locs = X_bar[:, 1] / 10.0
+#     scat = plt.scatter(x_locs, y_locs, c='r', marker='o')
+#     plt.savefig('{}/{:04d}.png'.format(output_path, tstep))
+#     plt.pause(0.00001)
+#     scat.remove()
 
+
+def visualize_timestep(X_bar, tstep, occupancy_map):
+    #compute coordiantes
+    x_locs = X_bar[:, 0] // 10.0
+    y_locs = X_bar[:, 1] // 10.0
+
+    x_locs = x_locs.astype('int')
+    y_locs = y_locs.astype('int')
+    
+    #deep copy of map
+    occ_map = occupancy_map.copy()
+    
+    #scale and convert map to 3 channels
+    #scale
+    occ_map[occ_map < 0] = 0
+    occ_map = (occ_map - occ_map.min())/(occ_map.max() - occ_map.min())
+    occ_map = (occ_map*255).astype('uint8')
+    
+    #stack
+    occ_map = occ_map[:,:,None]
+    occ_map = np.stack((occ_map, occ_map, occ_map), axis=-1)
+    
+    #add particles to map
+    occ_map[y_locs, x_locs, -1] = 255
+    
+    return occ_map
 
 def init_particles_random(num_particles, occupancy_map):
 
@@ -113,6 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', default='results')
     parser.add_argument('--num_particles', default=500, type=int)
     parser.add_argument('--visualize', action='store_true')
+    parser.add_argument('--video', action='store_true')
     args = parser.parse_args()
 
     src_path_map = args.path_to_map
@@ -130,6 +158,19 @@ if __name__ == '__main__':
     num_particles = args.num_particles
     X_bar = init_particles_random(num_particles, occupancy_map)
     # X_bar = init_particles_freespace(num_particles, occupancy_map)
+    
+    #initialize video writer
+    video_writer = None
+    if args.video:
+        #format
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        
+        #resolution of frames
+        dim = occupancy_map.shape[0]*map_obj._resolution
+        
+        #video writer instance
+        video_writer = cv2.VideoWriter(os.path.join(args.output, 'output.mp4'), fourcc, (dim, dim))        
+    
     """
     Monte Carlo Localization Algorithm : Main Loop
     """
@@ -199,4 +240,12 @@ if __name__ == '__main__':
         X_bar = resampler.low_variance_sampler(X_bar)
 
         if args.visualize:
-            visualize_timestep(X_bar, time_idx, args.output)
+            map_vis = visualize_timestep(X_bar, time_idx, occupancy_map)
+            cv2.imshow('Output', map_vis)
+            if args.video:
+                video_writer.write(map_vis)
+    
+    if args.visualize:
+        cv2.destroyAllWindows()
+        if args.video:
+            video_writer.release()

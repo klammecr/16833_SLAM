@@ -44,7 +44,7 @@ class Visualizer():
     def step_video(self, map_vis):
         cv2.imshow('Output', map_vis)
         if self.video_writer:
-            self.video_writer.write(map_vis)
+            self.video_writer.write(np.flipud(map_vis))
 
     # def visualize_map(self, occupancy_map):
     #     fig = plt.figure()

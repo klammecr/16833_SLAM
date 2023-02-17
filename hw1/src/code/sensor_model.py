@@ -31,7 +31,7 @@ class SensorModel:
 
         self._sigma_hit = 50
         self._lambda_short = 0.1
-
+        
         # Used in p_max and p_rand, optionally in ray casting
         self._max_range = 1000
 
@@ -181,7 +181,7 @@ class SensorModel:
         """
         #convert inputs into numpy arays
         z_t = np.array(z_t)
-        z_gt = np.aray(z_gt)
+        z_gt = np.array(z_gt)
         
         #initialize probabilities
         p1, p2, p3, p4 = [], [], [], []
@@ -194,10 +194,14 @@ class SensorModel:
         mask = z_t <= self._max_range
         
         #compute normalization factors
-        n = 1/norm.cdf(self._max_range, loc=z_gt[mask], scale=self._sigma_hit)
+        p1_norm = norm.cdf(self._max_range, loc=z_gt, scale=self._sigma_hit)
+
+        # if eta is 0 just mask out because it is pretty much undefined
+        mask = np.bitwise_and(mask, p1_norm > 1e-10)
         
         #compute probabilities
-        p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
+        # p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
+        p1[mask] = norm.pdf(z_t[mask], loc = z_gt[mask], scale = self._sigma_hit) / p1_norm[mask]
                         
         #SHORT PROBABILITY
         #initialize probabilties    
@@ -212,7 +216,6 @@ class SensorModel:
         #compute probabilties
         p2[mask] =  n*self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
             
-        
         #MAX PROBABILITY
         #initialize probabilties    
         p3 = np.zeros(len(z_t))

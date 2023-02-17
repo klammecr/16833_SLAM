@@ -25,10 +25,10 @@ class SensorModel:
         TODO : Tune Sensor Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._z_hit   = 1
+        self._z_hit   = 1.0
         self._z_short = 0.1
         self._z_max   = 0.1
-        self._z_rand  = 100
+        self._z_rand  = 100.0
 
         self._sigma_hit = 50
         self._lambda_short = 0.1
@@ -43,7 +43,7 @@ class SensorModel:
         self._subsampling = 1
         
         # Number of processes to be used for subsampling
-        self.num_processes = 1
+        self.num_processes = 8
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -57,6 +57,9 @@ class SensorModel:
         #separation between laser and robot center in cm
         self.laser_loc = 25
 
+        #variable to ensure non-zero probabilities
+        self.eps = 1e-5
+        
         # Store rays
         self.rays = self.map._occupancy_map.copy()
         
@@ -219,6 +222,11 @@ class SensorModel:
             z_t (list): measured data
             z_gt (list): ground truth data
         """
+        
+        #convert list to numpy array
+        z_t = np.array(z_t)
+        z_gt = np.array(z_gt)
+        
         #initialize probabilities
         p1, p2, p3, p4 = [], [], [], []
         
@@ -233,7 +241,7 @@ class SensorModel:
         n = 1/norm.cdf(self._max_range, loc=z_gt[mask], scale=self._sigma_hit)
         
         #compute probabilities
-        p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
+        p1[mask] = n*(1/(np.sqrt(2*np.pi)*self._sigma_hit))*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
                         
         #SHORT PROBABILITY
         #initialize probabilties    
@@ -243,7 +251,7 @@ class SensorModel:
         mask = z_t <= z_gt
 
         #compute normalization factors
-        n = 1/(1 - math.exp(-self._lambda_short*z_gt[mask]))
+        n = 1/(1 - np.exp(-self._lambda_short*z_gt[mask]))
         
         #compute probabilties
         p2[mask] =  n*self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
@@ -300,6 +308,9 @@ class SensorModel:
             self._z_short*p2 + \
             self._z_max*p3 + \
             self._z_rand*p4
+        
+        #ensure probabilities are non-zero
+        p = p + self.eps
         
         #sum of log probabilities
         prob_log = np.sum(np.log(p))

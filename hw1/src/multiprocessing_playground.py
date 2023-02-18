@@ -116,47 +116,116 @@
 #     print(f"Time taken with iterations: {end_time - start_time:.4f} seconds")
 
 
-#CODE 6
-from multiprocessing import Process, Queue
-import difflib, random, time
+# #CODE 6
+# from multiprocessing import Process, Queue
+# import difflib, random, time
 
-def f2(wordlist, mainwordlist, q):
-    for mainword in mainwordlist:
-        matches = difflib.get_close_matches(mainword,wordlist,len(wordlist),0.7)
-        q.put(matches)
+# def f2(wordlist, mainwordlist, q):
+#     for mainword in mainwordlist:
+#         matches = difflib.get_close_matches(mainword,wordlist,len(wordlist),0.7)
+#         q.put(matches)
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    # constants (for 50 input words, find closest match in list of 100 000 comparison words)
-    q = Queue()
-    wordlist = ["".join([random.choice([letter for letter in "abcdefghijklmnopqersty"]) for lengthofword in range(5)]) for nrofwords in range(100000)]
-    mainword = "hello"
-    mainwordlist = [mainword for each in range(50)]
+#     # constants (for 50 input words, find closest match in list of 100 000 comparison words)
+#     q = Queue()
+#     wordlist = ["".join([random.choice([letter for letter in "abcdefghijklmnopqersty"]) for lengthofword in range(5)]) for nrofwords in range(100000)]
+#     mainword = "hello"
+#     mainwordlist = [mainword for each in range(50)]
 
-    # normal approach
-    t = time.time()
-    for mainword in mainwordlist:
-        matches = difflib.get_close_matches(mainword,wordlist,len(wordlist),0.7)
-        q.put(matches)
-    print("t1 = ", time.time()-t)
+#     # normal approach
+#     t = time.time()
+#     for mainword in mainwordlist:
+#         matches = difflib.get_close_matches(mainword,wordlist,len(wordlist),0.7)
+#         q.put(matches)
+#     print("t1 = ", time.time()-t)
 
-    # split work into 5 or 10 processes
-    processes = 8
-    def splitlist(inlist, chunksize):
-        return [inlist[x:x+chunksize] for x in range(0, len(inlist), chunksize)]
-    print(len(mainwordlist)/processes)
-    mainwordlistsplitted = splitlist(mainwordlist, len(mainwordlist)//processes)
-    print("list ready")
+#     # split work into 5 or 10 processes
+#     processes = 8
+#     def splitlist(inlist, chunksize):
+#         return [inlist[x:x+chunksize] for x in range(0, len(inlist), chunksize)]
+#     print(len(mainwordlist)/processes)
+#     mainwordlistsplitted = splitlist(mainwordlist, len(mainwordlist)//processes)
+#     print("list ready")
 
-    t = time.time()
-    for submainwordlist in mainwordlistsplitted:
-        print("sub")
-        p = Process(target=f2, args=(wordlist,submainwordlist,q,))
-        p.Daemon = True
-        p.start()
-    for submainwordlist in mainwordlistsplitted:
-        p.join()
-    print("t2 = ", time.time()-t)
-    # while True:
-    #     print(q.get())
+#     t = time.time()
+#     proc_list = []
+#     for submainwordlist in mainwordlistsplitted:
+#         print("sub")
+#         p = Process(target=f2, args=(wordlist,submainwordlist,q,))
+#         p.Daemon = True
+#         proc_list.append(p)
+#         p.start()
         
+#     for p in proc_list:
+#         p.join()
+        
+#     print("t2 = ", time.time()-t)
+#     # while True:
+#     #     print(q.get())
+
+# #CODE 7
+# from multiprocessing import Process, Queue
+# import difflib, random, time
+# import numpy as np
+
+# def func(num):
+#     # r = num*np.random.normal(0, 1, (1000, 1000))
+#     # y = np.matmul(r, r)
+#     time.sleep(0.005)
+#     return True
+
+# def f2(numlist, q):
+#     for num in numlist:
+#         y = func(num)
+#         q.put(y)
+
+# if __name__ == '__main__':
+
+#     # constants (for 50 input words, find closest match in list of 100 000 comparison words)
+#     q = Queue()
+#     numlist = [nums for nums in range(1000)]
+
+#     # normal approach
+#     t = time.time()
+#     for num in numlist:
+#         out = func(num)
+#         q.put(out)
+        
+#     print("t1 = ", time.time()-t)
+
+#     # # split work into 5 or 10 processes
+#     processes = 8
+#     chunksize = len(numlist)//processes
+#     numlist_split = [numlist[x:x+chunksize] for x in range(0, len(numlist), chunksize)]
+#     print(len(numlist)/processes)
+#     print("list ready")
+
+#     t = time.time()
+#     proc_list = []
+#     for numlist_split_item in numlist_split:
+#         print("sub")
+#         p = Process(target=f2, args=(numlist_split_item,q,))
+#         p.Daemon = True
+#         proc_list.append(p)
+#         p.start()
+        
+#     for p in proc_list:
+#         p.join()
+        
+#     print("t2 = ", time.time()-t)
+#     # while True:
+#     #     print(q.get())
+
+#CODE 8
+from joblib import Parallel, delayed
+from math import sqrt
+import time
+
+t = time.time()
+Parallel(n_jobs=1)(delayed(sqrt)(i**2) for i in range(10**7))
+print("t1 = ", time.time()-t)
+
+t = time.time()
+Parallel(n_jobs=8)(delayed(sqrt)(i**2) for i in range(10**7))
+print("t2 = ", time.time()-t)

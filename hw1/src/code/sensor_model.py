@@ -43,7 +43,7 @@ class SensorModel:
         self._subsampling = 1
         
         # Number of processes to be used for subsampling
-        self.num_processes = 8
+        self.num_processes = 1
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -133,7 +133,7 @@ class SensorModel:
                     break
             
             #if ray hits the wall
-            if self.map._occupancy_map[cy_p][cx_p] != 0:
+            if self.map._occupancy_map[cy_p][cx_p] > self._min_probability:
                 break
             
             #update x and y coordinates
@@ -199,13 +199,16 @@ class SensorModel:
             p.start()
             print('Started process', len(a))
 
+        t1 = time.time()
         #end processes
         for a in args_list:
             p.join()
+        t2 = time.time()
         
+        print("in time = ", t2-t1)
         #unpack results
         while not results.empty():
-            print(results.get())
+            results.get()
         #print(results)
         # z_gt = [0 for i in range(angles.size)]
         
@@ -262,7 +265,7 @@ class SensorModel:
         p3 = np.zeros(len(z_t))
         
         #mask for non zero probabilities
-        mask = z_t > self._max_range
+        mask = z_t >= self._max_range
         
         #compute probabilities
         p3[mask] = 1

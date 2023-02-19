@@ -5,10 +5,14 @@ import numpy as np
 
 class Visualizer():
     def __init__(self, occ_map, output_path, steps = 10, resolution = 10, video = True):
+        # Internals
         self.prev_state    = None
         self.output_path   = output_path
         self.steps         = steps
         self.resolution    = resolution
+
+        # Maks to help display rays
+        self.ray_mask = np.zeros_like(occ_map)
 
         # Process occupancy map
         #scale and convert map to 3 channels
@@ -46,12 +50,8 @@ class Visualizer():
         if self.video_writer:
             self.video_writer.write(np.flipud(map_vis))
 
-    # def visualize_map(self, occupancy_map):
-    #     fig = plt.figure()
-    #     mng = plt.get_current_fig_manager()
-    #     plt.ion()
-    #     plt.imshow(occupancy_map, cmap='Greys')
-    #     plt.axis([0, 800, 0, 800])
+    def set_ray_mask(self, map):
+        self.ray_mask = (map == -2)
 
     def visualize_timestep(self, X_bar, tstep):
         #compute coordiantes
@@ -76,16 +76,37 @@ class Visualizer():
         # The rest is for single frame display
         self.occupancy_map = occ_map.copy()
 
-        # Add particles to map as red
-        for y,x in zip(y_locs_pix, x_locs_pix):
-            cv2.circle(occ_map, (x, y), radius = 3, color = (0,0,255), thickness = 5)
 
-        # Create a green line to visualize the orientation of the robot
+        # Particle specifics
+        probs    = X_bar[:, -1]
+        best_idx = np.argmax(probs)
+
+        # Orientation precomputation
         orientation_rad = X_bar[:, 2]
         x_end = x_locs_pix + self.steps * np.cos(orientation_rad)
         y_end = y_locs_pix + self.steps * np.sin(orientation_rad)
+
+        idx = 0
         for x_s, y_s, x_e, y_e in zip(x_locs_pix, y_locs_pix, x_end, y_end):
-            cv2.line(occ_map, (x_s, y_s), (int(x_e), int(y_e)), color = (0, 255, 0), thickness=1)
+            # Add particles to map as red
+            if idx == best_idx:
+                # Draw a BIG particle
+                cv2.circle(occ_map, (x_s, y_s), radius = 3, color = (0,0,255), thickness = 5)
+
+                # Create a green line to visualize the orientation of the robot
+                cv2.line(occ_map, (x_s, y_s), (int(x_e), int(y_e)), color = (0, 255, 0), thickness=1)
+
+                # Show the rays for the dominant particle
+                
+            else:
+                # Draw a very small particle
+                cv2.circle(occ_map, (x_s, y_s), radius = 1, color = (0,0,255), thickness = 1)
+
+            # Increment index
+            idx += 1
+ 
+        # Create the rays and display them as white
+        occ_map[self.ray_mask, :] = 255.
 
         # Update prev
         self.prev_state = [x_locs_pix, y_locs_pix]

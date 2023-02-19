@@ -179,6 +179,9 @@ if __name__ == '__main__':
             else:
                 X_bar_new[m, :] = np.hstack((x_t1[m], X_bar[m, 3]))
 
+        # Give the map for the visualizer
+        vis.set_ray_mask(sensor_model.get_map_with_rays())
+
         #convert log probabilities into probabilities
         prob_log = X_bar_new[:,-1]
 

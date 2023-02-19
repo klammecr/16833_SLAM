@@ -29,11 +29,11 @@ class SensorModel:
         self._z_max   = 0.1
         self._z_rand  = 100.0
 
-        self._sigma_hit = 50
+        self._sigma_hit = 50.
         self._lambda_short = 0.1
         
         # Used in p_max and p_rand, optionally in ray casting
-        self._max_range = 1000
+        self._max_range = 750.
 
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
@@ -241,6 +241,8 @@ class SensorModel:
                 
         return p1, p2, p3, p4
         
+    def get_map_with_rays(self):
+        return self.rays
 
     def beam_range_finder_model(self, z_t1_arr, x_t1):
         """
@@ -248,11 +250,9 @@ class SensorModel:
         param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
         param[out] prob_zt1 : likelihood of a range scan zt1 at time t
         """
-        """
-        TODO : Add your code here
-        """
-        prob_zt1 = 1.0
-        
+        # Clear the rays from last frame
+        self.rays = self.map._occupancy_map.copy()
+
         #find laser position based on robot position
         x_sensor = self.sensor_location(x_t1)
         
@@ -272,7 +272,7 @@ class SensorModel:
             self._z_rand*p4
         
         #add small probability
-        p = p + self.eps
+        p += self.eps
         
         #sum of log probabilities
         prob_log = np.sum(np.log(p))

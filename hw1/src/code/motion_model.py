@@ -6,7 +6,7 @@
 
 import sys
 import numpy as np
-from math import atan2, cos, sin, sqrt, fmod
+from math import atan2, sqrt
 
 
 class MotionModel:

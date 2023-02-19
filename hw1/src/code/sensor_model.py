@@ -40,10 +40,10 @@ class SensorModel:
         self._min_probability = 0.35
 
         # Used in sampling angles in ray casting
-        self._subsampling = 1
+        self._subsampling = 5
         
         # Number of processes to be used for subsampling
-        self.num_processes = 1
+        self.num_processes = 2
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -101,7 +101,7 @@ class SensorModel:
         for a in arg_list:
             x, angle = a
             z_gt_a = self.ray_casting(x, angle)
-            results.put(z_gt_a)
+            results.put([a, z_gt_a])
          
     def ray_casting(self, x, angle):
         """ray casting algorithm to find true range 
@@ -133,7 +133,8 @@ class SensorModel:
                     break
             
             #if ray hits the wall
-            if self.map._occupancy_map[cy_p][cx_p] > self._min_probability:
+            if self.map._occupancy_map[cy_p][cx_p] > self._min_probability \
+                or self.map._occupancy_map[cy_p][cx_p] == -1:
                 break
             
             #update x and y coordinates
@@ -156,8 +157,11 @@ class SensorModel:
         #array to store true ranges
         z_gt = []
         
+        angles = np.arange(1, 181, self._subsampling)
+        print('num angles = ', angles.size)
+        
         #iterate based on subsampling
-        for i in range(1, 181, self._subsampling):
+        for i in angles:
             #compute range using ray casting
             z_gt_angle = self.ray_casting(x, i*(math.pi/180))
                         
@@ -180,35 +184,37 @@ class SensorModel:
         
         #create list to store input arguments
         args = []
+        for a in angles:
+            args.append([x, a*(math.pi/180)])
         
         #create Queue to store results
         results = Queue()
-        for a in angles:
-            args.append([x, a*(math.pi/180)])
         
         #split inputs into chunks
         chunk_size = len(args)//self.num_processes
         args_list = [args[i:i+chunk_size] for i in range(0, len(args), chunk_size)]
         
         #start processes
+        t1 = time.time()
+        
         processes = []
         for a in args_list:
-            p = Process(target = self.ray_casting_vectorized, args=(a, results,))
+            p = Process(target = self.ray_casting_vectorized, args=(a,results,))
             processes.append(p)
-            p.Daemon = True
             p.start()
             print('Started process', len(a))
 
-        t1 = time.time()
-        #end processes
-        for a in args_list:
-            p.join()
         t2 = time.time()
         
-        print("in time = ", t2-t1)
-        #unpack results
-        while not results.empty():
-            results.get()
+        #end processes
+        for p in processes:
+            p.join()
+        t3 = time.time()
+        
+        print("in time = ", t2-t1, t3-t2)
+        # #unpack results
+        # while not results.empty():
+        #     results.get()
         #print(results)
         # z_gt = [0 for i in range(angles.size)]
         
@@ -216,7 +222,6 @@ class SensorModel:
         #     a, z = results.get()
             
         # return z_gt
-        return [0]
     
     def sensor_probs(self, z_t, z_gt):
         """function to compute probabiltiies of measurement
@@ -322,7 +327,7 @@ class SensorModel:
 
 
 if __name__ == "__main__":
-    src_path_map = './../data/map/wean.dat'
+    src_path_map = '/Users/bharath/Documents/acads/spring_2023/16833/hw1/src/data/map/wean.dat'
     map1 = MapReader(src_path_map)
 
     sm = SensorModel(map1)
@@ -334,21 +339,22 @@ if __name__ == "__main__":
         z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
         t2 = time.time()
         
-    print(t2-t1)
+    print("Normal time = ", t2-t1)
     
-    #sm.rays[yy//10, xx//10] = -5
-    t3 = time.time()
-    for n in range(1):
-        z_gt_2 = sm.get_true_ranges_vectorized([4110, 5130, math.pi/2])
-    t4 = time.time()
+    # #sm.rays[yy//10, xx//10] = -5
+    # t3 = time.time()
+    # for n in range(1):
+    #     z_gt_2 = sm.get_true_ranges_vectorized([xx, yy, math.pi/2])
+    # t4 = time.time()
     
     #print(z_gt_1[0::10])
     #print(len(z_gt_1))
     # print(z_gt_2[0::10])
     
-    print(t4-t3)
+    # print("Vectorized time = ", t4-t3)
     
     #plt.imshow(sm.map._occupancy_map, 'gray')
     plt.imshow(sm.rays, 'gray')
-    plt.savefig('./rays.png')
+    plt.show()
+    #plt.savefig('./rays.png')
     

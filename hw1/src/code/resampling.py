@@ -46,10 +46,11 @@ class Resampling:
 
         # Init variables
         M      = X_bar.shape[0]
-        r      = np.random.uniform(0, 1/M) 
-        c      = X_bar[0, -1]
+        r      = np.random.uniform(0, 1.0/M) 
+        w      = X_bar[:, 3]
+        w     /= np.sum(w)
+        c      = w[0]
         i      = 0
-        U_list = r + np.array(range(M)) * 1/M
 
         # DEBUG:
         # self.visualize_low_variance_resampler(U_list, X_bar)
@@ -60,11 +61,11 @@ class Resampling:
         # Therefore, Very small weighted particles are unlikely but could possibly be sampled, higher weights have a proportionally better chance
         for m in range(M):
             # Upper bound, when c surpasses this threshold, sample the particle
-            U = U_list[m]
+            U = r + m * (1.0/M)
 
             while U > c:
                 i += 1
-                c += X_bar[i, -1]
+                c += w[i]
 
             # c caught up to U, sample the particle
             X_bar_resampled[m] = X_bar[i]

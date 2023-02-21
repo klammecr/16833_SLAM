@@ -1,8 +1,8 @@
-'''
-    Adapted from course 16831 (Statistical Techniques).
-    Initially written by Paloma Sodhi (psodhi@cs.cmu.edu), 2018
-    Updated by Wei Dong (weidong@andrew.cmu.edu), 2021
-'''
+# '''
+#     Adapted from course 16831 (Statistical Techniques).
+#     Initially written by Paloma Sodhi (psodhi@cs.cmu.edu), 2018
+#     Updated by Wei Dong (weidong@andrew.cmu.edu), 2021
+# '''
 
 from multiprocessing import Pool, Process, Queue
 import numpy as np
@@ -24,22 +24,22 @@ class SensorModel:
         TODO : Tune Sensor Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._z_hit   = 1.0
-        self._z_short = 0.1
+        self._z_hit   = 10.0
+        self._z_short = 1.5
         self._z_max   = 0.1
-        self._z_rand  = 100.0
+        self._z_rand  = 1000.0
 
         self._sigma_hit = 50.
         self._lambda_short = 0.1
         
         # Used in p_max and p_rand, optionally in ray casting
-        self._max_range = 750.
+        self._max_range = 8000
 
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
 
         # Used in sampling angles in ray casting
-        self._subsampling = 1
+        self._subsampling = 5
         
         # Number of processes to be used for subsampling
         self.num_processes = 8
@@ -86,6 +86,7 @@ class SensorModel:
         lx, ly, ltheta = x
         
         #measure angle of laser beam in global reference frame
+        # Subtract pi/2 because we want 180 degrees in front of the robot
         theta = (ltheta + angle) - math.pi/2
         
         #perform ray casting
@@ -103,10 +104,11 @@ class SensorModel:
                 cy_p < 0 or cy_p > self.h - 1:
                     break
             
-            #if ray hits the wall
-            if self.map._occupancy_map[cy_p][cx_p] != 0:
+            # If it surpasses the threshold for an obstacle or we don't know:
+            if self.map._occupancy_map[cy_p][cx_p] >= self._min_probability or \
+                self.map._occupancy_map[cy_p][cx_p] == -1:
                 break
-            
+
             #update x and y coordinates
             cx = cx + self.ray_skip_dist*np.cos(theta)
             cy = cy + self.ray_skip_dist*np.sin(theta)
@@ -145,7 +147,7 @@ class SensorModel:
         z_gt = []
         
         #store angles at which rays are cast
-        angles = np.arange(1, 181, self._subsampling)
+        angles = np.arange(0, 180, self._subsampling)
         
         #create list of arguments
         args = Queue()
@@ -176,19 +178,7 @@ class SensorModel:
         
         return z_gt
     
-    def sensor_probs(self, z_t, z_gt):
-        """function to compute probabiltiies of measurement
-        Args:
-            z_t (list): measured data
-            z_gt (list): ground truth data
-        """
-        #convert inputs into numpy arays
-        z_t = np.array(z_t)
-        z_gt = np.array(z_gt)
-        
-        #initialize probabilities
-        p1, p2, p3, p4 = [], [], [], []
-        
+    def p_hit(self, z_t, z_gt):
         #HIT PROBABILITY
         #initialize probabilties
         p1 = np.zeros(len(z_t))
@@ -205,7 +195,10 @@ class SensorModel:
         #compute probabilities
         # p1[mask] = n*np.exp(-0.5*((z_t[mask]-z_gt[mask])/self._sigma_hit)**2)
         p1[mask] = norm.pdf(z_t[mask], loc = z_gt[mask], scale = self._sigma_hit) / p1_norm[mask]
-                        
+
+        return p1
+
+    def p_short(self, z_t, z_gt):
         #SHORT PROBABILITY
         #initialize probabilties    
         p2 = np.zeros(len(z_t))
@@ -214,31 +207,52 @@ class SensorModel:
         mask = z_t <= z_gt
 
         #compute normalization factors
-        n = 1/(1 - np.exp(-self._lambda_short*z_gt[mask]))
+        eta = 1/(1 - np.exp(-self._lambda_short*z_gt[mask]))
         
         #compute probabilties
-        p2[mask] =  n*self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
-            
-        #MAX PROBABILITY
-        #initialize probabilties    
-        p3 = np.zeros(len(z_t))
-        
-        #mask for non zero probabilities
-        mask = z_t > self._max_range
-        
-        #compute probabilities
-        p3[mask] = 1
-        
+        p2[mask] =  eta * self._lambda_short*np.exp(-self._lambda_short*z_t[mask])
+
+        return p2
+    
+    def p_rand(self, z_t):
         #RAND PROBABILITY
         #initialize probabilties    
         p4 = np.zeros(len(z_t))
         
         #mask for non zero probabilities
-        mask = z_t < self._max_range
+        mask = np.bitwise_and(z_t < self._max_range, z_t >= 0)
         
         #compute probabilities
         p4[mask] = 1/(self._max_range)
-                
+        
+        return p4
+    
+    def p_max(self, z_t):
+        #MAX PROBABILITY
+        #initialize probabilties    
+        p3 = np.zeros(len(z_t))
+        
+        #compute probabilities
+        p3[z_t == self._max_range] = 1
+
+        return p3
+
+    def sensor_probs(self, z_t, z_gt):
+        """function to compute probabiltiies of measurement
+        Args:
+            z_t (list): measured data
+            z_gt (list): ground truth data
+        """
+        #convert inputs into numpy arays
+        z_t = np.array(z_t)
+        z_gt = np.array(z_gt)
+        
+        # Compute the probabilities for the sensor model
+        p1 = self.p_hit(z_t, z_gt)
+        p2 = self.p_short(z_t, z_gt)
+        p3 = self.p_max(z_t)
+        p4 = self.p_rand(z_t)
+                     
         return p1, p2, p3, p4
         
     def get_map_with_rays(self):

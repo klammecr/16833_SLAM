@@ -63,20 +63,6 @@ class Visualizer():
         # Deep copy the map
         occ_map = self.occupancy_map.copy()
 
-        # Sketch a blue line for the trajectory
-        if self.prev_state is not None:
-            dx = self.prev_state[0] - x_locs_pix
-            dy = self.prev_state[1] - y_locs_pix
-            for i in range(len(dx)):
-                # If the particle gets resampled, don't trace it
-                if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
-                    cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 3)
-
-        # The trajectory is the only thing that is permanent frame-to-frame, cache it in the class now
-        # The rest is for single frame display
-        self.occupancy_map = occ_map.copy()
-
-
         # Particle specifics
         probs    = X_bar[:, -1]
         best_idx = np.argmax(probs)
@@ -86,8 +72,25 @@ class Visualizer():
         x_end = x_locs_pix + self.steps * np.cos(orientation_rad)
         y_end = y_locs_pix + self.steps * np.sin(orientation_rad)
 
-        idx = 0
-        for x_s, y_s, x_e, y_e in zip(x_locs_pix, y_locs_pix, x_end, y_end):
+        # Sketch a blue line for the trajectory
+        if self.prev_state is not None:
+            dx = self.prev_state[0] - x_locs_pix
+            dy = self.prev_state[1] - y_locs_pix
+            for i in range(len(dx)):
+                # Only sketch the best particle
+                if i == best_idx:
+                    # If the particle gets resampled, don't trace it
+                    if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
+                        cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 3)
+
+        # The trajectory is the only thing that is permanent frame-to-frame, cache it in the class now
+        # The rest is for single frame display
+        self.occupancy_map = occ_map.copy()
+
+        for idx, xyxy in enumerate(zip(x_locs_pix, y_locs_pix, x_end, y_end)):
+            # Get start and end
+            x_s, y_s, x_e, y_e = xyxy
+
             # Add particles to map as red
             if idx == best_idx:
                 # Draw a BIG particle
@@ -97,7 +100,7 @@ class Visualizer():
                 cv2.line(occ_map, (x_s, y_s), (int(x_e), int(y_e)), color = (0, 255, 0), thickness=1)
 
                 # Show the rays for the dominant particle
-                
+
             else:
                 # Draw a very small particle
                 cv2.circle(occ_map, (x_s, y_s), radius = 1, color = (0,0,255), thickness = 1)

@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
         # TODO: TEMPORARY HACK, WE NEED TO VECTORIZE TO MAKE THIS RUN SMOOTH
         # THIS IS HERE FOR THE ELSE CASE WHEN WE DONT GET LOG PROBS
-        if np.sum(prob_log) != 1.0:
+        if not np.isclose(np.sum(prob_log), 1.0, rtol = 1e-6):
             #apply softmax
             prob_log = prob_log -  prob_log.max()
             prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))

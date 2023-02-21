@@ -51,7 +51,7 @@ class Visualizer():
             self.video_writer.write(np.flipud(map_vis))
 
     def set_ray_mask(self, map):
-        self.ray_mask = (map == -2)
+        self.ray_mask = (map == -5)
 
     def visualize_timestep(self, X_bar, tstep):
         #compute coordiantes
@@ -109,7 +109,7 @@ class Visualizer():
             idx += 1
  
         # Create the rays and display them as white
-        occ_map[self.ray_mask, :] = 255.
+        #occ_map[self.ray_mask, :] = 255.
 
         # Update prev
         self.prev_state = [x_locs_pix, y_locs_pix]

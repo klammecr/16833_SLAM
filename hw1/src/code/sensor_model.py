@@ -20,21 +20,26 @@ class SensorModel:
     References: Thrun, Sebastian, Wolfram Burgard, and Dieter Fox. Probabilistic robotics. MIT press, 2005.
     [Chapter 6.3]
     """
-    def __init__(self, occupancy_map):
+    def __init__(self, occupancy_map, num_particles):
         """
         TODO : Tune Sensor Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._z_hit   = 10.0
-        self._z_short = 1.5
-        self._z_max   = 0.1
-        self._z_rand  = 1000.0
+        # self._z_hit   = 10.0
+        # self._z_short = 1.5
+        # self._z_max   = 0.1
+        # self._z_rand  = 5000.0
 
-        self._sigma_hit = 50.
+        self._z_hit   =  2.
+        self._z_short = 0.1
+        self._z_max   = 0.01
+        self._z_rand  = 800.
+
+        self._sigma_hit = 75.
         self._lambda_short = 0.1
         
         # Used in p_max and p_rand, optionally in ray casting
-        self._max_range = 8000
+        self._max_range = 800 # cm
 
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
@@ -63,128 +68,12 @@ class SensorModel:
         # Small probability value
         self.eps = 1e-5
 
-        self.ray_casting = rc.RayCasting()
-        
-    def sensor_location(self, x):
-        """Find sensor's position based on state of robot
-        Args:
-            x (list): state of robot represented by a particle
-        """
-        #get x, y, theta of robot from state
-        rx, ry, theta = x
-        
-        #compute laser's location
-        lx = rx + self.laser_loc*np.cos(theta) 
-        ly = ry + self.laser_loc*np.sin(theta)
-        
-        return [lx, ly, theta]
-    
-    def ray_casting(self, x, angle):
-        """ray casting algorithm to find true range 
-        Args:
-            x (list): state of the range sensor represented by a particle
-            angle (float): angle of laser beam
-        """
-        #unpack particle
-        lx, ly, ltheta = x
-        
-        #measure angle of laser beam in global reference frame
-        # Subtract pi/2 because we want 180 degrees in front of the robot
-        theta = (ltheta + angle) - math.pi/2
-        
-        #perform ray casting
-        #initialize positions to positions of range sensor
-        cx, cy = lx, ly
-        
-        #iterate till wall is hit or the ray reaches edge of map
-        while True:
-            #convert cm into px
-            cx_p = math.floor(cx/self.map._resolution)
-            cy_p = math.floor(cy/self.map._resolution)
-            
-            #if ray goes beyond edge
-            if cx_p < 0 or cx_p > self.w - 1 or \
-                cy_p < 0 or cy_p > self.h - 1:
-                    break
-            
-            # If it surpasses the threshold for an obstacle or we don't know:
-            if self.map._occupancy_map[cy_p][cx_p] >= self._min_probability or \
-                self.map._occupancy_map[cy_p][cx_p] == -1:
-                break
-
-            #update x and y coordinates
-            cx = cx + self.ray_skip_dist*np.cos(theta)
-            cy = cy + self.ray_skip_dist*np.sin(theta)
-            
-            self.rays[cy_p][cx_p] = -2
-            #print("ray = ", cy, cx, self.rays[cy_p][cx_p])
-            
-        z_gt = math.sqrt((cx-lx)**2 + (cy-ly)**2)
-
-        return z_gt
-    
-    def get_true_ranges(self, x):
-        """function to find true range for a given state(x,y,theta) of robot
-        Args:
-            x (list): state of range sensor
-        """
-        #array to store true ranges
-        z_gt = []
-        
-        #iterate based on subsampling
-        for i in range(1, 181, self._subsampling):
-            #compute range using ray casting
-            z_gt_angle = self.ray_casting(x, i*(math.pi/180))
-                        
-            #add range to list
-            z_gt.append(z_gt_angle)
-        
-        return z_gt
-    
-    def get_true_ranges_vectorized(self, x):
-        """function to find true range for a given state(x,y,theta) of robot using vectorized implementation
-        Args:
-            x (list): state of range sensor
-        """
-        #array to store true ranges
-        z_gt = []
-        
-        #store angles at which rays are cast
-        angles = np.arange(0, 180, self._subsampling)
-        
-        #create list of arguments
-        args = Queue()
-        results = Queue()
-        for a in angles:
-            args.put((x, a*(math.pi/180)))
-        
-        #add
-        chunk_size = len(arg_list)//self.num_processes
-        arg_list_split = []
-        arg_list_split = [arg_list[x:x+chunk_size] for x in range(0, len(arg_list), chunk_size)]
-        
-        #paralelized ray casting
-        processes = []
-        #start processes
-        for args in arg_list_split:
-            p = Process(target = self.ray_casting, args=(args,))
-            processes.append(p)
-            p.daemon = True
-            p.start()
-
-        #end processes
-        for p in processes:
-            p.join()
-        
-        p = Pool(self.num_processes)
-        z_gt = p.starmap(self.ray_casting, arg_list)       
-        
-        return z_gt
+        self.ray_casting = rc.RayCasting(self.map, num_particles=num_particles)
     
     def p_hit(self, z_t, z_gt):
         #HIT PROBABILITY
         #initialize probabilties
-        p1 = np.zeros(len(z_t))
+        p1 = np.zeros_like(z_t)
         
         #mask for non zero probabilities
         mask = z_t <= self._max_range
@@ -204,7 +93,7 @@ class SensorModel:
     def p_short(self, z_t, z_gt):
         #SHORT PROBABILITY
         #initialize probabilties    
-        p2 = np.zeros(len(z_t))
+        p2 = np.zeros_like(z_t)
         
         #mask for non zero probabilities
         mask = z_t <= z_gt
@@ -220,7 +109,7 @@ class SensorModel:
     def p_rand(self, z_t):
         #RAND PROBABILITY
         #initialize probabilties    
-        p4 = np.zeros(len(z_t))
+        p4 = np.zeros_like(z_t)
         
         #mask for non zero probabilities
         mask = np.bitwise_and(z_t < self._max_range, z_t >= 0)
@@ -233,7 +122,7 @@ class SensorModel:
     def p_max(self, z_t):
         #MAX PROBABILITY
         #initialize probabilties    
-        p3 = np.zeros(len(z_t))
+        p3 = np.zeros_like(z_t)
         
         #compute probabilities
         p3[z_t == self._max_range] = 1
@@ -257,9 +146,26 @@ class SensorModel:
         p4 = self.p_rand(z_t)
                      
         return p1, p2, p3, p4
+    
+    def sensor_probs_vec(self, z_t, z_gt):
+        """function to compute probabiltiies of measurement
+        Args:
+            z_t (list): measured data
+            z_gt (list): ground truth data
+        """
+        # Repeat so we can compare against each particle
+        z_t = np.repeat(z_t, z_gt.shape[0]).reshape(z_gt.shape)
+
+        # Compute the probabilities for the sensor model
+        p1 = self.p_hit(z_t, z_gt)
+        p2 = self.p_short(z_t, z_gt)
+        p3 = self.p_max(z_t)
+        p4 = self.p_rand(z_t)
+                     
+        return p1, p2, p3, p4
         
     def get_map_with_rays(self):
-        return self.rays
+        return self.ray_casting.rays_map
     
     def get_true_ranges(self, x_t):
         """Find true ranges
@@ -277,18 +183,15 @@ class SensorModel:
         """
         # Clear the rays from last frame
         self.rays = self.map._occupancy_map.copy()
-
-        #find laser position based on robot position
-        x_sensor = self.sensor_location(x_t1)
                 
         #perform ray casting to find GT ranges at various angles
-        z_gt = self.ray_casting.get_true_ranges(x_t1)
+        z_gt = self.ray_casting.get_true_ranges_vec(x_t1)[0]
         
         #sample laser measurements
         z_t1_arr = z_t1_arr[::self.ray_casting._subsampling]
-        
+
         #find probabilities
-        p1, p2, p3, p4 = self.sensor_probs(z_t1_arr, z_gt)
+        p1, p2, p3, p4 = self.sensor_probs_vec(z_t1_arr, z_gt)
         
         #aggregate probabilities
         p = self._z_hit*p1 + \
@@ -300,30 +203,37 @@ class SensorModel:
         p += self.eps
         
         #sum of log probabilities
-        prob_log = np.sum(np.log(p))
+        prob_log = np.sum(np.log(p), axis = 1)
+
+        # apply softmax to normalize the probabilities
+        # https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
+        a = prob_log.max()
+        logsumexp = a + np.log(np.sum(np.exp(prob_log - a)))
+        prob = np.exp(prob_log - logsumexp)
         
-        return prob_log
+        return prob
 
 
 if __name__ == "__main__":
-    src_path_map = '/Users/bharath/Documents/acads/spring_2023/16833/hw1/src/data/map/wean.dat'
-    map1 = MapReader(src_path_map)
+    pass
+    # src_path_map = '/Users/bharath/Documents/acads/spring_2023/16833/hw1/src/data/map/wean.dat'
+    # map1 = MapReader(src_path_map)
 
-    sm = SensorModel(map1)
+    # sm = SensorModel(map1)
     
-    t1 = time.time()
+    # t1 = time.time()
     
-    xx = 4110
-    yy = 5130
+    # xx = 4110
+    # yy = 5130
     
-    for n in range(500):
-        z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
+    # for n in range(500):
+    #     z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
     
-    t2 = time.time()
+    # t2 = time.time()
         
-    print("Vectorized time = ", t2-t1)
+    # print("Vectorized time = ", t2-t1)
     
-    print(z_gt_1)
+    # print(z_gt_1)
     
     # #sm.rays[yy//10, xx//10] = -5
     # t3 = time.time()
@@ -340,3 +250,5 @@ if __name__ == "__main__":
     #plt.imshow(sm.map._occupancy_map, 'gray')
     #plt.imshow(sm.rays, 'gray')
     #plt.savefig('./rays.png')
+
+    # Chris Klamemr Debug

@@ -90,6 +90,7 @@ if __name__ == '__main__':
     """
     Initialize Parameters
     """
+    np.random.seed(5875)
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_to_map', default='C:/Users/chris/dev/16833/hw1/src/data/map/wean.dat')
     parser.add_argument('--path_to_log', default='C:/Users/chris/dev/16833/hw1/src/data/log/robotdata1.log')
@@ -107,18 +108,18 @@ if __name__ == '__main__':
     occupancy_map = map_obj.get_map()
     logfile       = open(src_path_log, 'r')
 
-    # Create necessary objects for motion, sensor, and resampling
-    motion_model = MotionModel()
-    sensor_model = SensorModel(map_obj)
-    resampler    = Resampling()
-
     # Setup the visualizer
     if args.visualize:
         vis = Visualizer(occupancy_map, args.output, video = args.video)
 
     # Create init particles
     num_particles = args.num_particles
-    X_bar = init_particles_freespace(num_particles, map_obj)     
+    X_bar = init_particles_freespace(num_particles, map_obj)
+
+    # Create necessary objects for motion, sensor, and resampling
+    motion_model = MotionModel()
+    sensor_model = SensorModel(map_obj, num_particles)
+    resampler    = Resampling()
     
     """
     Monte Carlo Localization Algorithm : Main Loop
@@ -163,37 +164,32 @@ if __name__ == '__main__':
         """ MOTION MODEL """
         x_t0 = X_bar[:, :3]
         x_t1 = motion_model.update(u_t0, u_t1, x_t0)
-        # w_t  = sensor_model.beam_range_finder_model_vec(z_t, x_t1)
+
+        """ SENSOR MODEL """
+        if (meas_type == "L"):
+            w_t  = sensor_model.beam_range_finder_model(z_t, x_t1)
+        else:
+            w_t = X_bar[:, 3]
+
+        # Representation for the particles
+        X_bar_new = np.hstack((x_t1, w_t.reshape(-1, 1)))
 
         # Note: this formulation is intuitive but not vectorized; looping in python is SLOW.
         # Vectorized version will receive a bonus. i.e., the functions take all particles as the input and process them in a vector.
-        for m in range(0, num_particles):
-            """
-            SENSOR MODEL
-            """
-            if (meas_type == "L"):
-                # Find the log probabilities
-                w_t = sensor_model.beam_range_finder_model(z_t, x_t1[m])
+        # for m in range(0, num_particles):
+        #     """
+        #     SENSOR MODEL
+        #     """
+        #     if (meas_type == "L"):
+        #         # Find the log probabilities
+        #         w_t = sensor_model.beam_range_finder_model(z_t, x_t1[m])
                 
-                X_bar_new[m, :] = np.hstack((x_t1[m], w_t))
-            else:
-                X_bar_new[m, :] = np.hstack((x_t1[m], X_bar[m, 3]))
+        #         X_bar_new[m, :] = np.hstack((x_t1[m], w_t))
+        #     else:
+        #         X_bar_new[m, :] = np.hstack((x_t1[m], X_bar[m, 3]))
 
         # Give the map for the visualizer
-        vis.set_ray_mask(sensor_model.get_map_with_rays())
-
-        #convert log probabilities into probabilities
-        prob_log = X_bar_new[:,-1]
-
-        # TODO: TEMPORARY HACK, WE NEED TO VECTORIZE TO MAKE THIS RUN SMOOTH
-        # THIS IS HERE FOR THE ELSE CASE WHEN WE DONT GET LOG PROBS
-        if not np.isclose(np.sum(prob_log), 1.0, rtol = 1e-6):
-            #apply softmax
-            prob_log = prob_log -  prob_log.max()
-            prob = (np.exp(prob_log))/(np.sum(np.exp(prob_log)))
-            
-            #add probabilities to particle parameters
-            X_bar_new[:,-1] = prob
+        #vis.set_ray_mask(sensor_model.get_map_with_rays())
 
         # Add probabilities to particle parameters
         X_bar = X_bar_new

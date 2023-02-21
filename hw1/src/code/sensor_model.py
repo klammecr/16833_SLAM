@@ -8,11 +8,12 @@ from multiprocessing import Pool, Process, Queue
 import numpy as np
 import math
 import time
+import queue
 from matplotlib import pyplot as plt
 from scipy.stats import norm
 
 from map_reader import MapReader
-
+import ray_casting as rc
 
 class SensorModel:
     """
@@ -41,8 +42,8 @@ class SensorModel:
         # Used in sampling angles in ray casting
         self._subsampling = 5
         
-        # Number of processes to be used for subsampling
-        self.num_processes = 8
+        #variable to ensure non-zero probabilities
+        self.eps = 1e-5
         
         # Store oocupancy map
         self.map = occupancy_map
@@ -61,6 +62,8 @@ class SensorModel:
         
         # Small probability value
         self.eps = 1e-5
+
+        self.ray_casting = rc.RayCasting()
         
     def sensor_location(self, x):
         """Find sensor's position based on state of robot
@@ -257,6 +260,14 @@ class SensorModel:
         
     def get_map_with_rays(self):
         return self.rays
+    
+    def get_true_ranges(self, x_t):
+        """Find true ranges
+
+        Args:
+            x_t (list): state of robot
+        """
+        return self.ray_casting.get_true_ranges(x_t)
 
     def beam_range_finder_model(self, z_t1_arr, x_t1):
         """
@@ -269,12 +280,12 @@ class SensorModel:
 
         #find laser position based on robot position
         x_sensor = self.sensor_location(x_t1)
-        
+                
         #perform ray casting to find GT ranges at various angles
-        z_gt = self.get_true_ranges(x_sensor)
+        z_gt = self.ray_casting.get_true_ranges(x_t1)
         
         #sample laser measurements
-        z_t1_arr = z_t1_arr[::self._subsampling]
+        z_t1_arr = z_t1_arr[::self.ray_casting._subsampling]
         
         #find probabilities
         p1, p2, p3, p4 = self.sensor_probs(z_t1_arr, z_gt)
@@ -295,30 +306,37 @@ class SensorModel:
 
 
 if __name__ == "__main__":
-    src_path_map = './../data/map/wean.dat'
+    src_path_map = '/Users/bharath/Documents/acads/spring_2023/16833/hw1/src/data/map/wean.dat'
     map1 = MapReader(src_path_map)
 
     sm = SensorModel(map1)
     
     t1 = time.time()
+    
     xx = 4110
     yy = 5130
+    
     for n in range(500):
         z_gt_1 = sm.get_true_ranges([xx, yy, math.pi/2])
-        t2 = time.time()
+    
+    t2 = time.time()
         
-    sm.rays[yy//10, xx//10] = -5
+    print("Vectorized time = ", t2-t1)
+    
+    print(z_gt_1)
+    
+    # #sm.rays[yy//10, xx//10] = -5
     # t3 = time.time()
-    # z_gt_2 = sm.get_true_ranges_vectorized([590, 145, 0])
+    # for n in range(1):
+    #     z_gt_2 = sm.get_true_ranges_vectorized([xx, yy, math.pi/2])
     # t4 = time.time()
     
-    print(z_gt_1[0::10])
-    print(len(z_gt_1))
+    #print(z_gt_1[0::10])
+    #print(len(z_gt_1))
     # print(z_gt_2[0::10])
     
-    print(t2-t1)
-    # print(t4-t3)
+    # print("Vectorized time = ", t4-t3)
     
     #plt.imshow(sm.map._occupancy_map, 'gray')
-    plt.imshow(sm.rays, 'gray')
-    plt.savefig('./rays.png')
+    #plt.imshow(sm.rays, 'gray')
+    #plt.savefig('./rays.png')

@@ -20,7 +20,7 @@ def wrap_angle(angle):
     """
     # Put the range to [0, 360) then take the modulo in case we go over or under
     angle_wrap = (angle + np.pi) % (2*np.pi) - np.pi    
-    return angle
+    return angle_wrap
 
 
 class MotionModel:

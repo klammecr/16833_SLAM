@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["--num_particles", "1000", "--visualize", "--video"]
+            "args": ["--num_particles", "500", "--visualize", "--video"]
         },
         {
             "name": "Default",

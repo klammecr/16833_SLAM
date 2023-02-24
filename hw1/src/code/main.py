@@ -18,6 +18,23 @@ from motion_model import MotionModel
 from sensor_model import SensorModel
 from resampling import Resampling
 from visualizer import Visualizer
+from datetime import datetime
+
+def get_time_string():
+    now = datetime.now()
+
+    # Get the year, month, day, hour, minute, and second as integers
+    year = str(now.year)
+    month = str(now.month).zfill(2)
+    day = str(now.day).zfill(2)
+    hour = str(now.hour).zfill(2)
+    minute = str(now.minute).zfill(2)
+    second = str(now.second).zfill(2)
+
+    # Combine the integers into a string in the desired format
+    formatted_date = year + month + day + hour + minute + second
+    
+    return formatted_date
 
 def init_particles_random(num_particles, occupancy_map):
 
@@ -65,14 +82,15 @@ def init_particles_freespace(num_particles, occupancy_map):
     x_scaled = x_unscaled*occupancy_map._resolution + x_perturb
 
     #generate random orientations
-    angles = np.random.uniform(-3.14, 3.14, (num_particles, 1))
+    angles = np.random.uniform(-np.pi, np.pi, (num_particles, 1))
     
     #initialize weights
     weights = np.ones((num_particles, 1), dtype=np.float64)
     weights = weights / num_particles
     
     #stack all particle attributes
-    X_bar_init = np.hstack((x_scaled.reshape(-1, 1), y_scaled.reshape(-1, 1), angles.reshape(-1, 1), weights.reshape(-1, 1)))
+    X_bar_init = np.hstack((x_scaled.reshape(-1, 1), y_scaled.reshape(-1, 1), \
+                            angles.reshape(-1, 1), weights.reshape(-1, 1)))
     
     return X_bar_init
 
@@ -92,14 +110,22 @@ if __name__ == '__main__':
     """
     np.random.seed(5875)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_to_map', default='C:/Users/chris/dev/16833/hw1/src/data/map/wean.dat')
-    parser.add_argument('--path_to_log', default='C:/Users/chris/dev/16833/hw1/src/data/log/robotdata1.log')
+    parser.add_argument('--path_to_map', default='./../data/map/wean.dat')
+    parser.add_argument('--path_to_log', default='./../data/log/robotdata1.log')
     parser.add_argument('--output', default='results')
     parser.add_argument('--num_particles', default=500, type=int)
     parser.add_argument('--visualize', action='store_true')
     parser.add_argument('--video', action='store_true')
     args = parser.parse_args()
     os.makedirs(args.output, exist_ok=True)
+        
+    if args.video:
+        #add file path to output
+        tag = args.path_to_log.split('/')[-1].split('.')[0] +\
+                '_' + get_time_string() + '.mp4'
+        args.output = os.path.join(args.output, tag)
+
+        print('Output video will be saved to  {}'.format(args.output))
 
     # Load in occupancy map
     src_path_map  = args.path_to_map
@@ -126,85 +152,67 @@ if __name__ == '__main__':
     """
     first_time_idx = True
     for time_idx, line in enumerate(logfile):
-
-        # Read a single 'line' from the log file (can be either odometry or laser measurement)
-        # L : laser scan measurement, O : odometry measurement
+        ## READ DATA
+        # read the type of log file
         meas_type = line[0]
 
         # convert measurement values from string to double
         meas_vals = np.fromstring(line[2:], dtype=np.float64, sep=' ')
 
-        # odometry reading [x, y, theta] in odometry frame
+        # read odometry and timestamp data
         odometry_robot = meas_vals[0:3]
         time_stamp = meas_vals[-1]
 
-        # ignore pure odometry measurements for (faster debugging)
-        # if ((time_stamp <= 0.0) | (meas_type == "O")):
-        #     continue
-
         print(f"Processing time step {time_idx} at time {time_stamp}")
 
+        # read sensor data
         if (meas_type == "L"):
-            # [x, y, theta] coordinates of laser in odometry frame
             odometry_laser = meas_vals[3:6]
-            # 180 range measurement values from single laser scan
             ranges = meas_vals[6:-1]
 
+        # for first time step, initialize odometry readings
         if first_time_idx:
             u_t0 = odometry_robot
             first_time_idx = False
             continue
-
+        
+        ##PERFORM PARTICLE FILTERING
+        # array to store new particles
         X_bar_new = np.zeros((num_particles, 4), dtype=np.float64)
+        
+        #set input variables to particle filter
+        # motion parameters
+        x_t0 = X_bar[:, :3]
         u_t1 = odometry_robot
 
-        # Vectorize it
+        # sensor parameters
         z_t  = ranges
         
-        """ MOTION MODEL """
-        x_t0 = X_bar[:, :3]
+        # step 1: apply motion model
         x_t1 = motion_model.update(u_t0, u_t1, x_t0)
 
-        """ SENSOR MODEL """
+        # step 2: apply sensor model
         if (meas_type == "L"):
             w_t  = sensor_model.beam_range_finder_model(z_t, x_t1)
         else:
             w_t = X_bar[:, 3]
 
-        # Representation for the particles
+        # aggregate data for new particles
         X_bar_new = np.hstack((x_t1, w_t.reshape(-1, 1)))
 
-        # Note: this formulation is intuitive but not vectorized; looping in python is SLOW.
-        # Vectorized version will receive a bonus. i.e., the functions take all particles as the input and process them in a vector.
-        # for m in range(0, num_particles):
-        #     """
-        #     SENSOR MODEL
-        #     """
-        #     if (meas_type == "L"):
-        #         # Find the log probabilities
-        #         w_t = sensor_model.beam_range_finder_model(z_t, x_t1[m])
-                
-        #         X_bar_new[m, :] = np.hstack((x_t1[m], w_t))
-        #     else:
-        #         X_bar_new[m, :] = np.hstack((x_t1[m], X_bar[m, 3]))
-
-        # Give the map for the visualizer
-        #vis.set_ray_mask(sensor_model.get_map_with_rays())
-
-        # Add probabilities to particle parameters
-        X_bar = X_bar_new
-        u_t0 = u_t1
-
-        """
-        RESAMPLING
-        """
+        # step 3: resample particles 
         # Only resample when there is motion
         if np.sum(np.abs(x_t1 - x_t0)) > 1e-10:
             # X_bar = resampler.multinomial_sampler(X_bar)
-            X_bar = resampler.low_variance_sampler(X_bar)
-
-        # Visualize
+            X_bar = resampler.low_variance_sampler(X_bar_new)
+        else:
+            X_bar = X_bar_new.copy()
+            
+        # visualize map
         vis.visualize_timestep(X_bar, time_stamp)
 
+        # reset parameters for next iteration
+        u_t0 = u_t1
+    
     # Explicitly delete the visualizer, just in case
     del vis

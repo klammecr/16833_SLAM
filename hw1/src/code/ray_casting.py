@@ -16,6 +16,9 @@ class RayCasting():
             occupancy_map (_type_): occupancy map object
         """
         
+        #number of particles
+        self.num_particles = num_particles
+        
         # Maximum range for ray casting
         self._max_range = 750.
 
@@ -44,7 +47,6 @@ class RayCasting():
         self.rays_map = self.map.copy()
 
         #perform ray casting relative to robot
-        self.num_particles = num_particles
         self.rays = self.relative_ray_casting()
 
 
@@ -76,7 +78,7 @@ class RayCasting():
                 y = d*np.sin((np.pi/180)*a)
                 rays[i, j] = [x, y]
         
-        # Allocate rays for every particle
+        #duplicate rays for every particle
         rays = np.tile(rays, (self.num_particles, 1, 1, 1))
 
         #scale distances
@@ -89,42 +91,27 @@ class RayCasting():
         """Transform pre-computed ray coordinates according to robot's state
 
         Args:
-            x_t (list): list containing position and orientation of robot
+            x_t (list): list containing positions and orientations of robot
         """
         
         #unpack state
         x, y, angle = x_t
         
+        x = x_t[:,0]
+        y = x_t[:,1]
+        angle = x_t[:,2]
+        
         #make a copy of rays for all particles
         rays     = self.rays.copy()
         out_rays = np.zeros_like(rays)
-        
-        #rotate the rays
-        # rot_mat = [[np.cos(angle), -np.sin(angle)],\
-        #             [np.sin(angle), np.cos(angle)]]
-        # rays = np.matmul(rays, rot_mat)
-        #translate the rays 
-        #rays[:, :, :, 0] += x
-        #rays[:, :, :, 1] += y
-        
-        # Vectorized implementation for rotation from the world frame to the robot frame
-        #rotate the rays
-        # transform = np.tile(np.eye(3), (1, self.num_particles)).reshape(3, 3, self.num_particles)
-        # transform[0, 0, :] = np.cos(angle)
-        # transform[1, 1, :] = np.cos(angle)
-        # transform[1, 0, :] = np.sin(angle)
-        # transform[0, 1, :] = -np.sin(angle)
-        # transform[2, 0, :] = x # translation by x
-        # transform[2, 1, :] = y # translation by y
-        # Vectorized matrix multiplication
-        # rays = np.dot(rays, transform)
-        # rays = np.moveaxis(rays, -1, 0)
 
         # Sizes for everything
         particles, angles, points, _ = rays.shape
-        angle = angle.reshape(particles, 1)
+
+        #reshape robot state parameters
         x     = x.reshape(particles, 1)
         y     = y.reshape(particles, 1)
+        angle = angle.reshape(particles, 1)
 
         # Create an angle array to transform the correct points by the correct angles
         angle_arr = np.repeat(angle, angles*points, axis = 1).reshape(particles, angles, points)
@@ -140,7 +127,7 @@ class RayCasting():
     def sensor_location(self, x):
         """Find sensor's position based on state of robot
         Args:
-            x (list): state of robot represented by a particle
+            x (list): state of robot represented by particles
         """
         #get x, y, theta of robot from state
         rx    = x[:, 0]
@@ -157,7 +144,7 @@ class RayCasting():
         """Find true depths at all angles for a given robot state
 
         Args:
-            x_t (list): state of robot
+            x_t (list): states of robot represeented by particles
         """
         
         #adjust robot's state into laser's state
@@ -204,40 +191,11 @@ class RayCasting():
         
         #populate z_true based on x and y
         z_true[particles, angs] = dists
-        # for (p, a, d) in zip(particles, angs, dists):
-        #     z_true[p, a] = d
-                
-        # #convert cm to px
-        # x_int_arr = np.round(rays[:,:,0]/self.resolution).astype(np.int32)
-        # y_int_arr = np.round(rays[:,:,1]/self.resolution).astype(np.int32)
-        
-        # for a in range(num_angles):
-        #     for d in range(num_dists):
-        #         #unpack rays
-        #         x, y = rays[a, d]
-                
-        #         #convert cm into pixels
-        #         x_int = x_int_arr[a, d]
-        #         y_int = y_int_arr[a, d]
-                
-        #         #check for obstacles
-        #         #if ray goes beyond edge or hits a wall
-        #         if x_int < 0 or x_int > self.w - 1 or /
-        #             y_int < 0 or y_int > self.h - 1 or /
-        #             self.map[y_int][x_int] == -1 or /
-        #             self.map[y_int][x_int] > self._min_probability:
-        #                 #set depth
-        #                 z_true[a] = d
-        #                 break
-                
-        #         #mark coordinate on map
-        #         self.rays_map[y_int, x_int] = -2
-        
+
         #scale range
         z_true *= self.resolution
         
         return z_true, x_int, y_int
-
 
 if __name__ == "__main__":
     # src_path_map = './../data/map/wean.dat'

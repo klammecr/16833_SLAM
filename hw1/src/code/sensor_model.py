@@ -31,13 +31,13 @@ class SensorModel:
         # self._z_max   = 0.5
         # self._z_rand  = 1.5e3
 
-        self._z_hit   = 5.
+        self._z_hit   = 7.
         self._z_short = 0.1
-        self._z_max   = 0.5
+        self._z_max   = 0.2
         self._z_rand  = 1.5e3
 
         self._sigma_hit = 75.
-        self._lambda_short = 0.1
+        self._lambda_short = 0.5
         
         # Used in p_max and p_rand, optionally in ray casting
         self._max_range = 800 # cm
@@ -80,7 +80,7 @@ class SensorModel:
         mask = z_t <= self._max_range
         
         #compute normalization factors
-        p1_norm = norm.cdf(self._max_range, loc=z_gt, scale=self._sigma_hit)
+        p1_norm = norm.cdf(self._max_range, loc=z_gt, scale=self._sigma_hit) - norm.cdf(0., loc=z_gt, scale=self._sigma_hit)
 
         # if eta is 0 just mask out because it is pretty much undefined
         mask = np.bitwise_and(mask, p1_norm > 1e-10)
@@ -198,10 +198,8 @@ class SensorModel:
         p = self._z_hit*p1 + \
             self._z_short*p2 + \
             self._z_max*p3 + \
-            self._z_rand*p4
-        
-        #add small probability
-        p += self.eps
+            self._z_rand*p4  
+        p += 1e-12
         
         #sum of log probabilities
         prob_log = np.sum(np.log(p), axis = 1)

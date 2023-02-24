@@ -32,8 +32,8 @@ class MotionModel:
         """
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._alpha1 = 1e-4
-        self._alpha2 = 1e-4
+        self._alpha1 = 1e-5
+        self._alpha2 = 1e-5
         self._alpha3 = 7.5e-4
         self._alpha4 = 7.5e-4
 
@@ -46,16 +46,16 @@ class MotionModel:
         """
 
         # See if there is consequential motion
-        # if np.sum(np.abs(u_t1 - u_t0)) <= 1e-10:
-        #     return x_t0
+        if np.sum((u_t1[0:2] - u_t0[0:2])**2)**0.5 < 0.5:
+            return x_t0
 
         # Output vector for the pose at time t
         x_t1 = np.zeros_like(x_t0)
 
         # Find the rotation from time (t-1) to the centroid at time t from odometry measurements
-        delta_rot_1 = wrap_angle(atan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2]) # Angle between the translation vector and the first angle measurement
+        delta_rot_1 = atan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2] # Angle between the translation vector and the first angle measurement
         delta_trans = sqrt((u_t1[0] - u_t0[0]) ** 2 + (u_t1[1] - u_t0[1]) ** 2) 
-        delta_rot_2 = wrap_angle(u_t1[2] - u_t0[2] - delta_rot_1) # This is just the angle between the translation vector and the second angle measurement
+        delta_rot_2 = u_t1[2] - u_t0[2] - delta_rot_1 # This is just the angle between the translation vector and the second angle measurement
 
         # Remove the independent noise
         delta_rot_1_var = self._alpha1 * delta_rot_1**2 + self._alpha2 * delta_trans**2
@@ -68,6 +68,6 @@ class MotionModel:
         # Estimate the pose of the robot at time t
         x_t1[:, 0] = x_t0[:, 0] + delta_trans * np.cos(x_t0[:, 2] + delta_rot_1)
         x_t1[:, 1] = x_t0[:, 1] + delta_trans * np.sin(x_t0[:, 2] + delta_rot_1)
-        x_t1[:, 2] = wrap_angle(x_t0[:, 2] + delta_rot_1 + delta_rot_2)
+        x_t1[:, 2] = x_t0[:, 2] + delta_rot_1 + delta_rot_2
         
         return x_t1

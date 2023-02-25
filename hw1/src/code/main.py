@@ -151,6 +151,10 @@ if __name__ == '__main__':
     Monte Carlo Localization Algorithm : Main Loop
     """
     first_time_idx = True
+    
+    #keep track of time
+    t1 = time.time()
+    
     for time_idx, line in enumerate(logfile):
         ## READ DATA
         # read the type of log file
@@ -163,8 +167,7 @@ if __name__ == '__main__':
         odometry_robot = meas_vals[0:3]
         time_stamp = meas_vals[-1]
 
-        print(f"Processing time step {time_idx} at time {time_stamp}")
-
+        print(f"Time {time.time()-t1} sec :Processing time step {time_idx} at time {time_stamp}")
         # read sensor data
         if (meas_type == "L"):
             odometry_laser = meas_vals[3:6]

@@ -31,16 +31,20 @@ class SensorModel:
         # self._z_max   = 0.5
         # self._z_rand  = 1.5e3
 
-        self._z_hit   = 7.
-        self._z_short = 0.1
-        self._z_max   = 0.2
-        self._z_rand  = 1.5e3
+        # self._z_hit   = 7.
+        # self._z_short = 0.1
+        # self._z_max   = 0.2
+        # self._z_rand  = 1.5e3
+        self._z_hit   = 50.0
+        self._z_short = 50.0
+        self._z_max   = 50.0
+        self._z_rand  = 500
 
         self._sigma_hit = 75.
         self._lambda_short = 0.5
         
         # Used in p_max and p_rand, optionally in ray casting
-        self._max_range = 800 # cm
+        self._max_range = 1000 # cm
 
         # Used for thresholding obstacles of the occupancy map
         self._min_probability = 0.35
@@ -107,6 +111,16 @@ class SensorModel:
 
         return p2
     
+    def p_max(self, z_t):
+        #MAX PROBABILITY
+        #initialize probabilties    
+        p3 = np.zeros_like(z_t)
+        
+        #compute probabilities
+        p3[z_t == self._max_range] = 1
+
+        return p3
+
     def p_rand(self, z_t):
         #RAND PROBABILITY
         #initialize probabilties    
@@ -120,15 +134,6 @@ class SensorModel:
         
         return p4
     
-    def p_max(self, z_t):
-        #MAX PROBABILITY
-        #initialize probabilties    
-        p3 = np.zeros_like(z_t)
-        
-        #compute probabilities
-        p3[z_t == self._max_range] = 1
-
-        return p3
 
     def sensor_probs(self, z_t, z_gt):
         """function to compute probabiltiies of measurement
@@ -155,7 +160,7 @@ class SensorModel:
             z_gt (list): ground truth data
         """
         # Repeat so we can compare against each particle
-        z_t = np.repeat(z_t, z_gt.shape[0]).reshape(z_gt.shape)
+        z_t = np.repeat(z_t[np.newaxis,:], z_gt.shape[0], 0)
 
         # Compute the probabilities for the sensor model
         p1 = self.p_hit(z_t, z_gt)
@@ -179,12 +184,15 @@ class SensorModel:
     def beam_range_finder_model(self, z_t1_arr, x_t1):
         """
         param[in] z_t1_arr : laser range readings [array of 180 values] at time t
-        param[in] x_t1 : particle state belief [x, y, theta] at time t [world_frame]
-        param[out] prob_zt1 : likelihood of a range scan zt1 at time t
+        param[in] x_t1 : state belief of all particles [[x_i, y_i, theta_i]] at time t [world_frame]
+        param[out] prob_zt1 : probabilities of all particles at time t
         """
         # Clear the rays from last frame
         self.rays = self.map._occupancy_map.copy()
-                
+        
+        #clip measured ranges
+        z_t1_arr = np.clip(z_t1_arr, 0, self._max_range)
+        
         #perform ray casting to find GT ranges at various angles
         z_gt = self.ray_casting.get_true_ranges_vec(x_t1)[0]
         
@@ -198,17 +206,26 @@ class SensorModel:
         p = self._z_hit*p1 + \
             self._z_short*p2 + \
             self._z_max*p3 + \
-            self._z_rand*p4  
-        p += 1e-12
+            self._z_rand*p4
+        
+        #add small probability
+        #p += self.eps #removing this since clipping range will ensure this naturally
         
         #sum of log probabilities
         prob_log = np.sum(np.log(p), axis = 1)
 
         # apply softmax to normalize the probabilities
-        # https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
+        # https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/      
         a = prob_log.max()
         logsumexp = a + np.log(np.sum(np.exp(prob_log - a)))
         prob = np.exp(prob_log - logsumexp)
+    
+        # #my implementation
+        # max_val = prob_log.max()
+        # prob_log = prob_log - max_val
+        # prob = np.exp(prob_log)
+        # prob = prob/np.sum(prob)
+        
         
         return prob
 

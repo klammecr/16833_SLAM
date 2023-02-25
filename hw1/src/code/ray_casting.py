@@ -94,9 +94,7 @@ class RayCasting():
             x_t (list): list containing positions and orientations of robot
         """
         
-        #unpack state
-        x, y, angle = x_t
-        
+        #unpack state       
         x = x_t[:,0]
         y = x_t[:,1]
         angle = x_t[:,2]

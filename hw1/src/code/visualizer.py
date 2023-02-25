@@ -80,8 +80,8 @@ class Visualizer():
                 # Only sketch the best particle
                 if i == best_idx:
                     # If the particle gets resampled, don't trace it
-                    #if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
-                    cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 3)
+                    if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
+                        cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 3)
 
         # The trajectory is the only thing that is permanent frame-to-frame, cache it in the class now
         # The rest is for single frame display

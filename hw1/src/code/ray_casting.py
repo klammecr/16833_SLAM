@@ -95,30 +95,23 @@ class RayCasting():
         """
         
         #unpack state       
-        x = x_t[:,0]
-        y = x_t[:,1]
-        angle = x_t[:,2]
+        # x = x_t[:,0]
+        # y = x_t[:,1]
+        # angle = x_t[:,2]
+        
+        x , y, angle = x_t
         
         #make a copy of rays for all particles
-        rays     = self.rays.copy()
-        out_rays = np.zeros_like(rays)
-
-        # Sizes for everything
-        particles, angles, points, _ = rays.shape
+        out_rays = np.zeros_like(self.rays)
 
         #reshape robot state parameters
-        x     = x.reshape(particles, 1)
-        y     = y.reshape(particles, 1)
-        angle = angle.reshape(particles, 1)
-
-        # Create an angle array to transform the correct points by the correct angles
-        angle_arr = np.repeat(angle, angles*points, axis = 1).reshape(particles, angles, points)
-        x_trans_arr = np.repeat(x, angles*points, axis = 1).reshape(particles, angles, points)
-        y_trans_arr = np.repeat(y, angles*points, axis = 1).reshape(particles, angles, points)
+        x_trans_arr     = x[:, np.newaxis, np.newaxis]
+        y_trans_arr     = y[:, np.newaxis, np.newaxis]
+        angle_arr = angle[:, np.newaxis, np.newaxis]
 
         # Rotate and translate the ray relative to the robot's body frame
-        out_rays[:, :, :, 0] = (rays[:, :, :, 0] *  np.cos(angle_arr) + rays[:, :, :, 1] * -np.sin(angle_arr)) + x_trans_arr
-        out_rays[:, :, :, 1] = (rays[:, :, :, 0] *  np.sin(angle_arr) + rays[:, :, :, 1] * np.cos(angle_arr))  + y_trans_arr
+        out_rays[:, :, :, 0] = (self.rays[:, :, :, 0] *  np.cos(angle_arr) + self.rays[:, :, :, 1] * -np.sin(angle_arr)) + x_trans_arr
+        out_rays[:, :, :, 1] = (self.rays[:, :, :, 0] *  np.sin(angle_arr) + self.rays[:, :, :, 1] * np.cos(angle_arr))  + y_trans_arr
 
         return out_rays
     

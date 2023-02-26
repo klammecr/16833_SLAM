@@ -1,0 +1,15 @@
+\contentsline {section}{\numberline {1}Motion Model}{1}{section.1}%
+\contentsline {section}{\numberline {2}Sensor Model}{1}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Sensor Model}{1}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Description}{1}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Optimization}{2}{subsubsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.2}Ray Casting}{3}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Description}{3}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Optimization}{3}{subsubsection.2.2.2}%
+\contentsline {section}{\numberline {3}Resampling Process}{6}{section.3}%
+\contentsline {section}{\numberline {4}Performance}{7}{section.4}%
+\contentsline {section}{\numberline {5}Parameter Tuning}{7}{section.5}%
+\contentsline {section}{\numberline {6}Future Work}{8}{section.6}%
+\contentsline {section}{\numberline {7}Extra Credit}{8}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Kidnapped robot problem}{8}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Adaptive number of particles}{8}{subsection.7.2}%

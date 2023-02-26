@@ -26,19 +26,19 @@ class SensorModel:
         The original numbers are for reference but HAVE TO be tuned.
         """
         # BEST PARAMS SO FAR
-        # self._z_hit   = 1.
-        # self._z_short = 0.1
-        # self._z_max   = 0.5
-        # self._z_rand  = 1.5e3
-
         # self._z_hit   = 7.
         # self._z_short = 0.1
         # self._z_max   = 0.2
         # self._z_rand  = 1.5e3
         self._z_hit   = 50.0
-        self._z_short = 50.0
-        self._z_max   = 50.0
-        self._z_rand  = 500
+        self._z_short = 10.0
+        self._z_max   = 0.5
+        self._z_rand  = 1.5e3
+
+        # self._z_hit   = 50.0
+        # self._z_short = 50.0
+        # self._z_max   = 50.0
+        # self._z_rand  = 1000
 
         self._sigma_hit = 75.
         self._lambda_short = 0.5

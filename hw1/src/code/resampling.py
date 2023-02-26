@@ -52,9 +52,6 @@ class Resampling:
         c      = w[0]
         i      = 0
 
-        # DEBUG:
-        # self.visualize_low_variance_resampler(U_list, X_bar)
-
         # Here we will go through the particles and start the interplay of c and U
         # U will increment a fixed amount each iteration
         # c will essentially cumulatively keep track of the sum of the particles weights so far and will look to exceed U

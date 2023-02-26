@@ -28,14 +28,19 @@ class MotionModel:
     References: Thrun, Sebastian, Wolfram Burgard, and Dieter Fox. Probabilistic robotics. MIT press, 2005.
     [Chapter 5]
     """
-    def __init__(self):
+    def __init__(self, args):
         """
         The original numbers are for reference but HAVE TO be tuned.
         """
-        self._alpha1 = 1e-2
-        self._alpha2 = 1e-2
-        self._alpha3 = 1e-2
-        self._alpha4 = 1e-2
+        # self._alpha1 = 1e-5
+        # self._alpha2 = 1e-5
+        # self._alpha3 = 7.5e-4
+        # self._alpha4 = 7.5e-4
+        self._alpha1 = args.alpha1
+        self._alpha2 = args.alpha2
+        self._alpha3 = args.alpha3
+        self._alpha4 = args.alpha4
+        
 
     def update(self, u_t0, u_t1, x_t0):
         """
@@ -53,11 +58,9 @@ class MotionModel:
         x_t1 = np.zeros_like(x_t0)
 
         # Find the rotation from time (t-1) to the centroid at time t from odometry measurements
-        # Angle between the translation vector and the first angle measurement
-        delta_rot_1 = np.arctan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2]
+        delta_rot_1 = np.arctan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2] # Angle between the translation vector and the first angle measurement
         delta_trans = sqrt((u_t1[0] - u_t0[0]) ** 2 + (u_t1[1] - u_t0[1]) ** 2) 
-        # This is just the angle between the translation vector and the second angle measurement
-        delta_rot_2 = u_t1[2] - u_t0[2] - delta_rot_1
+        delta_rot_2 = u_t1[2] - u_t0[2] - delta_rot_1 # This is just the angle between the translation vector and the second angle measurement
 
         # Remove the independent noise
         delta_rot_1_var = self._alpha1 * delta_rot_1**2 + self._alpha2 * delta_trans**2

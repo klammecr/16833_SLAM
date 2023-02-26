@@ -53,7 +53,7 @@ class Visualizer():
     def set_ray_mask(self, map):
         self.ray_mask = (map == -5)
 
-    def visualize_timestep(self, X_bar, tstep):
+    def visualize_timestep(self, X_bar, tstep, sort_idxs):
         #compute coordiantes
         x_locs_pix = X_bar[:, 0] // self.resolution
         y_locs_pix = X_bar[:, 1] // self.resolution
@@ -74,14 +74,18 @@ class Visualizer():
 
         # Sketch a blue line for the trajectory
         if self.prev_state is not None:
-            dx = self.prev_state[0] - x_locs_pix
-            dy = self.prev_state[1] - y_locs_pix
+            if sort_idxs is None:
+                dx = self.prev_state[0] - x_locs_pix
+                dy = self.prev_state[1] - y_locs_pix
+            else:
+                dx = self.prev_state[0][sort_idxs] - x_locs_pix
+                dy = self.prev_state[1][sort_idxs] - y_locs_pix
             for i in range(len(dx)):
                 # Only sketch the best particle
                 if i == best_idx:
                     # If the particle gets resampled, don't trace it
                     if (abs(dx[i]) <= 2 and abs(dy[i]) <= 2) and (abs(dx[i]) > 0 or abs(dy[i]) > 0):
-                        cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 3)
+                        cv2.line(occ_map, (self.prev_state[0][i], self.prev_state[1][i]), (x_locs_pix[i], y_locs_pix[i]), color = (255,0,0), thickness = 1)
 
         # The trajectory is the only thing that is permanent frame-to-frame, cache it in the class now
         # The rest is for single frame display
@@ -113,6 +117,9 @@ class Visualizer():
 
         # Update prev
         self.prev_state = [x_locs_pix, y_locs_pix]
+
+        # Display number of particles
+        cv2.putText(occ_map, text = f"Number of Particles: {X_bar.shape[0]}", org=[25,30], fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=1, color=(255,255,255))
 
         # Give the occupancy map to the video writer
         self.step_video(occ_map)

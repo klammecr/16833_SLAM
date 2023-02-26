@@ -131,13 +131,16 @@ class RayCasting():
         
         return [lx, ly, theta]
     
-    def get_true_ranges_vec(self, x_t):
+    def get_true_ranges_vec(self, x_t, sort_idxs):
         """Find true depths at all angles for a given robot state
 
         Args:
             x_t (list): states of robot represeented by particles
         """
-        
+        if sort_idxs is not None:
+            self.rays = self.rays[sort_idxs]
+            self.num_particles = len(sort_idxs)
+
         #adjust robot's state into laser's state
         x_t = self.sensor_location(x_t)
         

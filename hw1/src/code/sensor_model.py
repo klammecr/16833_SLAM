@@ -20,7 +20,7 @@ class SensorModel:
     References: Thrun, Sebastian, Wolfram Burgard, and Dieter Fox. Probabilistic robotics. MIT press, 2005.
     [Chapter 6.3]
     """
-    def __init__(self, occupancy_map, num_particles):
+    def __init__(self, args, occupancy_map, num_particles):
         """
         TODO : Tune Sensor Model parameters here
         The original numbers are for reference but HAVE TO be tuned.
@@ -30,10 +30,10 @@ class SensorModel:
         # self._z_short = 0.1
         # self._z_max   = 0.2
         # self._z_rand  = 1.5e3
-        self._z_hit   = 50.0
-        self._z_short = 10.0
-        self._z_max   = 0.5
-        self._z_rand  = 1.5e3
+        self._z_hit   = args.z_hit
+        self._z_short = args.z_short
+        self._z_max   = args.z_max
+        self._z_rand  = args.z_rand
 
         # self._z_hit   = 50.0
         # self._z_short = 50.0
@@ -181,7 +181,7 @@ class SensorModel:
         """
         return self.ray_casting.get_true_ranges(x_t)
 
-    def beam_range_finder_model(self, z_t1_arr, x_t1):
+    def beam_range_finder_model(self, z_t1_arr, x_t1, sort_idxs):
         """
         param[in] z_t1_arr : laser range readings [array of 180 values] at time t
         param[in] x_t1 : state belief of all particles [[x_i, y_i, theta_i]] at time t [world_frame]
@@ -194,7 +194,7 @@ class SensorModel:
         z_t1_arr = np.clip(z_t1_arr, 0, self._max_range)
         
         #perform ray casting to find GT ranges at various angles
-        z_gt = self.ray_casting.get_true_ranges_vec(x_t1)[0]
+        z_gt = self.ray_casting.get_true_ranges_vec(x_t1, sort_idxs)[0]
         
         #sample laser measurements
         z_t1_arr = z_t1_arr[::self.ray_casting._subsampling]

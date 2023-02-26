@@ -19,6 +19,7 @@ from sensor_model import SensorModel
 from resampling import Resampling
 from visualizer import Visualizer
 from datetime import datetime
+from adaptive_particles import AdaptiveParticleCalculator
 
 def get_time_string():
     now = datetime.now()
@@ -108,21 +109,36 @@ if __name__ == '__main__':
     """
     Initialize Parameters
     """
+    import cProfile
+    import sys
+    pr = cProfile.Profile()
+    pr.enable()
+
     np.random.seed(5875)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_to_map', default='./../data/map/wean.dat')
-    parser.add_argument('--path_to_log', default='./../data/log/robotdata1.log')
+    working_dir = os.getcwd()
+    parser.add_argument('--path_to_map', default=f'../data/map/wean.dat')
+    parser.add_argument('--path_to_log', default=f'../data/log/robotdata1.log')
     parser.add_argument('--output', default='results')
     parser.add_argument('--num_particles', default=500, type=int)
     parser.add_argument('--visualize', action='store_true')
     parser.add_argument('--video', action='store_true')
+    parser.add_argument('--z_hit',   default=100, type=float)
+    parser.add_argument('--z_short', default=50, type=float)
+    parser.add_argument('--z_max',   default=50, type=float)
+    parser.add_argument('--z_rand',  default=100000, type=float)
+    parser.add_argument('--alpha1',  default=1e-4, type=float)
+    parser.add_argument('--alpha2',  default=1e-4, type=float)
+    parser.add_argument('--alpha3',  default=7.5e-4, type=float)
+    parser.add_argument('--alpha4',  default=7.5e-4, type=float)
     args = parser.parse_args()
     os.makedirs(args.output, exist_ok=True)
         
     if args.video:
         #add file path to output
-        tag = args.path_to_log.split('/')[-1].split('.')[0] +\
-                '_' + get_time_string() + '.mp4'
+        tag = args.path_to_log.split('/')[-1].split('.')[0] + \
+                '_' + get_time_string() + f"ZH={args.z_hit}_ZS={args.z_short}_ZM={args.z_max}_ZR={args.z_rand}" + \
+                f"a1={args.alpha1}_a2={args.alpha2}_a3={args.alpha3}_a4={args.alpha4}" + '.mp4'
         args.output = os.path.join(args.output, tag)
 
         print('Output video will be saved to  {}'.format(args.output))
@@ -143,9 +159,11 @@ if __name__ == '__main__':
     X_bar = init_particles_freespace(num_particles, map_obj)
 
     # Create necessary objects for motion, sensor, and resampling
-    motion_model = MotionModel()
-    sensor_model = SensorModel(map_obj, num_particles)
+    motion_model = MotionModel(args)
+    sensor_model = SensorModel(args, map_obj, num_particles)
     resampler    = Resampling()
+    adaptive_particles = AdaptiveParticleCalculator(num_particles)
+    sort_idxs = None
     
     """
     Monte Carlo Localization Algorithm : Main Loop
@@ -196,9 +214,12 @@ if __name__ == '__main__':
 
         # step 2: apply sensor model
         if (meas_type == "L"):
-            w_t  = sensor_model.beam_range_finder_model(z_t, x_t1)
+            w_t  = sensor_model.beam_range_finder_model(z_t, x_t1, sort_idxs)
         else:
-            w_t = X_bar[:, 3]
+            if sort_idxs is None:
+                w_t = X_bar[:, 3]
+            else:
+                w_t = X_bar[sort_idxs, 3]
 
         # aggregate data for new particles
         X_bar_new = np.hstack((x_t1, w_t.reshape(-1, 1)))
@@ -208,14 +229,19 @@ if __name__ == '__main__':
         if np.sum(np.abs(x_t1 - x_t0)) > 1e-10:
             # X_bar = resampler.multinomial_sampler(X_bar)
             X_bar = resampler.low_variance_sampler(X_bar_new)
+            #X_bar, sort_idxs = adaptive_particles.calculate_naive(X_bar)
         else:
             X_bar = X_bar_new.copy()
+            sort_idxs = None
             
         # visualize map
-        vis.visualize_timestep(X_bar, time_stamp)
+        vis.visualize_timestep(X_bar, time_stamp, sort_idxs)
 
         # reset parameters for next iteration
         u_t0 = u_t1
     
     # Explicitly delete the visualizer, just in case
     del vis
+    
+    pr.disable()
+    pr.print_stats()

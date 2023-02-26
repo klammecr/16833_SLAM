@@ -1,21 +1,24 @@
 \contentsline {section}{\numberline {1}Motion Model}{2}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Alterations}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.1}Description}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Implementation}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Alterations}{3}{subsection.1.3}%
 \contentsline {section}{\numberline {2}Sensor Model}{4}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Sensor Model}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.1}Ray Casting}{4}{subsection.2.1}%
 \contentsline {subsubsection}{\numberline {2.1.1}Description}{4}{subsubsection.2.1.1}%
 \contentsline {subsubsection}{\numberline {2.1.2}Optimization}{4}{subsubsection.2.1.2}%
-\contentsline {subsection}{\numberline {2.2}Ray Casting}{5}{subsection.2.2}%
-\contentsline {subsubsection}{\numberline {2.2.1}Description}{5}{subsubsection.2.2.1}%
-\contentsline {subsubsection}{\numberline {2.2.2}Optimization}{5}{subsubsection.2.2.2}%
-\contentsline {section}{\numberline {3}Resampling}{9}{section.3}%
+\contentsline {subsection}{\numberline {2.2}Sensor Model}{6}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Description}{6}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Optimization}{7}{subsubsection.2.2.2}%
+\contentsline {section}{\numberline {3}Resampling}{7}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Alterations}{9}{subsection.3.1}%
-\contentsline {section}{\numberline {4}Performance}{11}{section.4}%
-\contentsline {section}{\numberline {5}Parameter Tuning}{12}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Discussion}{12}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Final Parameters}{12}{subsection.5.2}%
-\contentsline {subsubsection}{\numberline {5.2.1}Motion Model}{12}{subsubsection.5.2.1}%
-\contentsline {subsubsection}{\numberline {5.2.2}Sensor Model}{12}{subsubsection.5.2.2}%
-\contentsline {section}{\numberline {6}Future Work}{13}{section.6}%
-\contentsline {section}{\numberline {7}Extra Credit}{13}{section.7}%
-\contentsline {subsection}{\numberline {7.1}Adaptive Number of Particles}{13}{subsection.7.1}%
-\contentsline {section}{\numberline {8}Links to Our Videos}{14}{section.8}%
+\contentsline {section}{\numberline {4}Performance}{9}{section.4}%
+\contentsline {section}{\numberline {5}Parameter Tuning}{10}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Discussion}{10}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Final Parameters}{10}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}Motion Model}{10}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Sensor Model}{10}{subsubsection.5.2.2}%
+\contentsline {section}{\numberline {6}Links to Our Videos}{10}{section.6}%
+\contentsline {section}{\numberline {7}Future Work}{10}{section.7}%
+\contentsline {section}{\numberline {8}Extra Credit}{11}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Kidnapped robot problem}{11}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Adaptive Number of Particles}{11}{subsection.8.2}%

@@ -168,13 +168,15 @@ class RayCasting():
         y_int[m_filter] = 0
         
         #find coordinates that hit the obstacle
-        obstacles = np.bitwise_or(self.map[y_int, x_int] == -1, self.map[y_int, x_int] >= self._min_probability)
+        obstacles = np.bitwise_or(self.map[y_int, x_int] == -1, \
+                                self.map[y_int, x_int] >= self._min_probability)
         
         #take intersection of filter and obstacle masks
         # This is all the occupied areas of the map
         occupied = np.bitwise_or(m_filter, obstacles).astype("int")
         
-        # Travel along each ray for a given particle and angle once we hit a point that is intraversible, our cumsum will be 1
+        # Travel along each ray for a given particle and angle
+        # Once we hit a point that is intraversible, our cumsum will be 1
         m_overall_cumsum = np.cumsum(occupied, axis=2)
         
         # Look at the particle, angle, and distance indexes to look for the boundaries

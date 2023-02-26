@@ -53,9 +53,11 @@ class MotionModel:
         x_t1 = np.zeros_like(x_t0)
 
         # Find the rotation from time (t-1) to the centroid at time t from odometry measurements
-        delta_rot_1 = np.arctan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2] # Angle between the translation vector and the first angle measurement
+        # Angle between the translation vector and the first angle measurement
+        delta_rot_1 = np.arctan2(u_t1[1] - u_t0[1], u_t1[0] - u_t0[0]) - u_t0[2]
         delta_trans = sqrt((u_t1[0] - u_t0[0]) ** 2 + (u_t1[1] - u_t0[1]) ** 2) 
-        delta_rot_2 = u_t1[2] - u_t0[2] - delta_rot_1 # This is just the angle between the translation vector and the second angle measurement
+        # This is just the angle between the translation vector and the second angle measurement
+        delta_rot_2 = u_t1[2] - u_t0[2] - delta_rot_1
 
         # Remove the independent noise
         delta_rot_1_var = self._alpha1 * delta_rot_1**2 + self._alpha2 * delta_trans**2

@@ -1,0 +1,13 @@
+EXP NAME,                   OBSERVATIONS
+alphas 10^-1,           particles very far away from gt and they hardly move!
+alphas 10^-2,           jittery particle but at the right location
+alphas 5x10^-2,         particle at wrong location
+alphas 10^-3,           particles very far away from gt and not much motion
+alphas 10^-4,           particles very far away from gt
+
+alphas = 1e-2 + orig sensor params, too uncertain. doesnt settle on one particle
+alphas = 1e-2 + z_hit=10, better convergence but particles too jittery
+alphas = 1e-2 + z_hit=50, follows the right path but stalls after some time
+alphas = 1e-2 + z_hit=100, follows the right path but stalls after some time
+alphas = 1e-2 + z_hit=10 + z_short=10, follows the right path but stalls after some time but stuck at the same location to an even larger extent
+alphas = 1e-2 + z_hit=50 + z_short=10, follows the right path but stalls after some time but stuck at the same location to an even larger extent

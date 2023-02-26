@@ -39,8 +39,41 @@
 
 \tableofcontents
 
+\clearpage
 \section{Motion Model}
-TODO Chris
+The motion model acts as the prediction step in the particle filter. We follow the odometry motion model mentioned in \cite{ProbRob} as shown below:
+
+
+\begin{figure}[!htb]
+  \center
+  \includegraphics{OdometryMotionModel.png}
+  \caption{Psuedocode for Odometry Motion Model \cite{ProbRob}}
+\end{figure}
+
+This algorithm assumes that two odometry measurements are given along with the previous state. The algorithm estimates the change in rotation and translation for the robot between time steps. This model also samples noise from a guassian distribution in order to add some perturbation. This perturbation allows uncertainity to be modelled and, in practice, allows particles to explore different paths. This approach, however, does require for the noise parameters to be tuned effectively in order to receive accurate localization.
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=1.0\textwidth]{./results/motion_model_2.png}
+    \caption{Implementation of the Odometry Motion Model}
+  \end{center}
+\end{figure}
+
+\subsection{Alterations}
+One improvement made on this algorithm was adding a check on whether there was consequential motion before predicting the state.
+
+\[ 
+x_{t1} = \left\{
+\begin{array}{ll}
+    motion\_model\_odometry(u_{t-1}, u_t, x_{t-1}) & \lVert u_{t1} - u_{t0} \rVert > \tau \\
+    x_{t0} & else
+\end{array} 
+\right. 
+\]
+
+That is, if there is consequential motion, we will run the prediciton step with the odometry motion model. Otherwise, we will not update the state estimate for the particle. We found this change to reduce the particle jitter and enforce a much more cohesive and smooth trajectory.
+
+\clearpage
 \section{Sensor Model}
 \subsection{Sensor Model}
 \subsubsection{Description}
@@ -111,34 +144,109 @@ Ray Casting is the most computationally expensive part of the code. We implement
 The time taken to measure ground truth ranges at 36 angles for 500 particles using our optimized implementation is just around 0.5 seconds on Apple Macbook M1 Pro system.
 
 
-\section{Resampling Process}
-Resampling is the process by which new particles are generated from a set of modified particles and their corresponding weights.\\\\
-We used low variance resampling to preserve the diversity in particle set. The figures below show the algorithm and our implementation.
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.9\linewidth]{results/resampling_1.png}
-  \caption{Description of Resampling algorithm}
+\clearpage
+\section{Resampling}
+The inherent nature of this algorithm is survivial of the fittest. Particles with a high probability realtive to the other particles, have a high chance of being retained. Meanwhile, low quality particles have a low probability of being maintained. However, if purely sampling by particle importance weights in a multinomial fashion, there is always an intrinsic variance or "luck" factor involved with random sampling. Therefore, we develop  low variance resampling algorithm mentioned in \cite{ProbRob} as follows:
+
+\begin{figure}[!htb]
+  \center
+  \includegraphics{LowVarianceResampling.png}
+  \caption{Psuedo-Code for Low Variance Resampling \cite{ProbRob}}
 \end{figure}
-\begin{figure}[H]
+
+Notice in this implementation that only one random number is drawn and there is a constant step size before resampling each particle. This low variance variant ensures that highly probable particles have more of an guarantee of being sampled and can even be sampled multiple times if they are probable enough. This creates a necessity for parameter tuning but also allows for more consistency when resampling.
+
+\begin{figure}[!htb]
   \centering
   \includegraphics[width=0.9\linewidth]{results/resampling_2.png}
   \caption{Implementation of resampling}
 \end{figure}
+\subsection{Alterations}
+Similar to the motion model, we do not perform resampling when the robot is not moving. We found this helps with algorithm speed and removes some noise during the "warmup" period
 
+\[ 
+x_{t} = \left\{
+\begin{array}{ll}
+    Low\_variance\_sampler(x_{t}, w_{t}) & \lVert u_{t1} - u_{t0} \rVert > \tau \\
+    x_{t} & else
+\end{array} 
+\right. 
+\]
+
+\clearpage
 \section{Performance}
 The total time taken for execution of particle filter on \textit{robotdata1.log} with 1000 particles on Apple Macbook M1 Pro is \textbf{19.6 min}. The execution time without the optimizations in ray casting is more than 3 hours(180 min).
+
+\clearpage
 \section{Parameter Tuning}
-TODO Chris
+\subsection{Discussion}
+Parameter tuning was undoubtedly the most rigorous and important part of the performance for this assignment. For the motion model, tuning $\alpha1$ and $\alpha_2$ had the most effect. A value that was too big caused jittering in the angle of the robot. A value that was too small caused the robot to not rotate enough. $\alpha_3$ and $alpha_4$ had a similar effect but for translation.
+
+For the sensor model, the two most important parameters were $z_{rand}$ and $z_{hit}$. We used many different values for $z_{rand}$ but found the best performance when this was a large magnitude bigger than the other parameters. When $z_{rand}$ was too small, the particle clouds would collapse and certainly not converge. When $z_{rand}$ was too large, particles would stay alive for far too long and the measurements would have little impact. $z_{hit}$ had a similar effect, modelling our belief in the sensor providing the correct distance. When $z_{hit}$ was too small, there was little chance of convergence. When $z_{hit}$ was too large, there was too much belief in the measurements being made and would collapse potentially correct particle clouds.
+
+\subsection{Final Parameters}
+\subsubsection{Motion Model}
+\begin{tabular}{||c c c c||} 
+  \hline
+  $\alpha_2$ & $\alpha_2$ & $\alpha_2$ & $\alpha_2$ \\
+  \hline
+  1e-4 & 1e-4 & 7.5e-4 & 7.5e-4 \\
+  \hline
+\end{tabular}
+
+\subsubsection{Sensor Model}
+\begin{tabular}{||c c c c c c||} 
+  \hline
+  $z_{hit}$ & $z_{short}$ & $z_{max}$ & $z_{rand}$ & $\sigma_{hit}$ & $\lambda_{short}$ \\
+  \hline
+  100 & 50 & 50 & 100000 & 75 & 0.5 \\
+  \hline
+\end{tabular}
+\clearpage
 \section{Future Work}
-TODO Chris
-\begin{enumerate}
-  \item Implementing ray casting on GPUs that specialize in matrix multiplications and additions can further reduce the execution time of particle filter
-  \item One interesting way to reduce time spent in ray casting is to approximate all obstacles in the map by a set straight lines. In this case, all the points that determine the ranges at various angles are simply intersections of any given ray and a set of lines! These points of intersection(and hence the ranges) can be computed at very little computational cost. This can potentially enable execution of particle filter in real time.
-\end{enumerate}
+Though we do well after tuning parameters, we still have occasional cases where we fail. For logs besides log 1, we are not as robust as we would like. We start to see the particles start to converge but then jump to the wrong location. I think we could get better results if we optimized for each log but that is not ideal in the slightest.
+
+In genreal, if we are in an area with more open space and less measureable landmarks, we may require different parameters. For this, having an adaptive number of particles and dynamic/learned parameter values may help. For the adaptive number of particles, as we increase and decrease confidence in the measurements around us, it would be ideal to add more particles to explore and reduce particles when we become more confident in our estimate. Furthermore, learned or adaptive parameters that could have a similar effect but may be able to infer about a shift in the sensor distribution and account for more hardware and noise related issues.
+
 \section{Extra Credit}
-\subsection{Kidnapped robot problem}
-TODO Bharath
-\subsection{Adaptive number of particles}
-TODO Chris
+
+\subsection{Adaptive Number of Particles}
+
+While implementing this homework, we found increasingly that a high number of particles are extremely useful in the "warmup period" of obtaining sensor readings, it is not as useful once the algorithm is close to convergence. Many of the particles are redundant and will not be useful unless more divergent paths appear (the particles are closer to a uniform distribution).
+
+From these observations, we present the idea of analyzing the entropy of the particles' probabilities in order to inform our algorithm if we need more or less particles. The entropy acts as a level of uncertainity about the distriubtion, with 0 being a single particle with all the probability and 1 being a uniformly distributed particle set. We define entropy w.r.t. weights $w_t^{(i)}$ as:
+
+$$ H(w_t) = - \sum_{i}^{M} log(w_t^{(i)})w_t^{(i)} $$
+
+
+However, entropy by itself is not suitable. It may be more convenient to utilize the entropy at two consecutive timesteps and calculate the the information gain from frame t to frame t+1:
+If our entropy is low, we want to reduce the number of particles
+
+
+In the first frame, we have particles that are all evenly weighted. As our probability distribution shifts, we want to adjust the number of particles by whether the difference in entropy (or information gain) is positive or negative. If positive, that means we have become more uncertain so we need to increase the number of particles. If negative, that means we are become less certain so we need to decrease the number of particles.
+We define the formula to calculate number of particles as:
+
+$$M = Me^{H(w_{t_1}) - H(w_{t_0})}$$
+
+If there is no information gained, the number of particles will stay the same. If the entropy increases, more particles will be added, if the entropy decreases, particles will be removed.
+
+A few implementation details include the frequency of changing the number of particles. Our initial experimentation had a max frequency of 2. That is, at most, the number of particles would change every other time step. This was done to ensure that we are not artifically inflating the entropy by adding more particles. Therefore, we only calculate information gain when two timesteps have the same number of particles. Lastly, we enforce a minimum number of particles of 50 to ensure our particles do not drop too low.
+
+\section{Links to Our Videos}
+\begin{tabular}{||c c||} 
+  \hline
+  Robot Log 1 & Robot Log 4 \\
+  \hline
+  \href{https://youtu.be/PKaJdCMeA9U}{Log 1} & \href{https://youtu.be/ilJhJMrWBzg}{Log 4} \\
+  \hline
+\end{tabular}
+
+\clearpage
+\begin{thebibliography}{9}
+  \bibitem{ProbRob}
+  Sebastian Thrun, Wolfram Burgard, and Dieter Fox (2005) \emph{Probabilistic Robotics}, MIT Press
+\end{thebibliography}
+
+\end{document}
 
 \end{document}

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2023.1.13)  26 FEB 2023 00:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2023.1.13)  26 FEB 2023 23:47
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -397,131 +397,157 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
  [1
 
 {/usr/local/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-<OdometryMotionModel.png, id=136, 376.40625pt x 281.55188pt>
+<OdometryMotionModel.png, id=146, 376.40625pt x 281.55188pt>
 File: OdometryMotionModel.png Graphic file (type png)
 <use OdometryMotionModel.png>
-Package pdftex.def Info: OdometryMotionModel.png  used on input line 50.
+Package pdftex.def Info: OdometryMotionModel.png  used on input line 54.
 (pdftex.def)             Requested size: 376.40532pt x 281.55118pt.
-<./results/motion_model_2.png, id=140, 1786.675pt x 1402.23875pt>
+<./results/motion_model_2.png, id=150, 1786.675pt x 1402.23875pt>
 File: ./results/motion_model_2.png Graphic file (type png)
 <use ./results/motion_model_2.png>
-Package pdftex.def Info: ./results/motion_model_2.png  used on input line 59.
+Package pdftex.def Info: ./results/motion_model_2.png  used on input line 63.
 (pdftex.def)             Requested size: 455.24411pt x 357.2773pt.
  [2
 
  <./OdometryMotionModel.png>] [3 <./results/motion_model_2.png (PNG copy)>]
-Underfull \hbox (badness 10000) in paragraph at lines 82--84
+Underfull \hbox (badness 10000) in paragraph at lines 86--88
 
  []
 
-<./results/ray_casting_opt_1.png, id=161, 1238.6275pt x 1321.93875pt>
+<./results/ray_casting_opt_1.png, id=171, 1238.6275pt x 1321.93875pt>
 File: ./results/ray_casting_opt_1.png Graphic file (type png)
 <use ./results/ray_casting_opt_1.png>
-Package pdftex.def Info: ./results/ray_casting_opt_1.png  used on input line 94.
+Package pdftex.def Info: ./results/ray_casting_opt_1.png  used on input line 98.
 (pdftex.def)             Requested size: 309.65611pt x 330.48389pt.
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 95.
+(caption)                particular \caption on input line 99.
 See the caption package documentation for explanation.
 
 [4
 
  <./results/ray_casting_opt_1.png (PNG copy)>]
-<./results/ray_casting_opt_2.png, id=170, 1321.93875pt x 2144.01pt>
+<./results/ray_casting_opt_2.png, id=181, 1321.93875pt x 2144.01pt>
 File: ./results/ray_casting_opt_2.png Graphic file (type png)
 <use ./results/ray_casting_opt_2.png>
-Package pdftex.def Info: ./results/ray_casting_opt_2.png  used on input line 107.
+Package pdftex.def Info: ./results/ray_casting_opt_2.png  used on input line 111.
 (pdftex.def)             Requested size: 330.48389pt x 536.00119pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 108.
+(caption)                particular \caption on input line 112.
 See the caption package documentation for explanation.
 
+<results/ray_casting_2.png, id=182, 462.528pt x 346.896pt>
+File: results/ray_casting_2.png Graphic file (type png)
+<use results/ray_casting_2.png>
+Package pdftex.def Info: results/ray_casting_2.png  used on input line 124.
+(pdftex.def)             Requested size: 409.71692pt x 307.302pt.
 [5 <./results/ray_casting_opt_2.png (PNG copy)>]
-<results/sensor_model_desc.png, id=176, 581.17125pt x 277.035pt>
+<results/sensor_model_pic.png, id=191, 572.1375pt x 469.755pt>
+File: results/sensor_model_pic.png Graphic file (type png)
+<use results/sensor_model_pic.png>
+Package pdftex.def Info: results/sensor_model_pic.png  used on input line 132.
+(pdftex.def)             Requested size: 409.71692pt x 336.40271pt.
+
+Underfull \hbox (badness 10000) in paragraph at lines 129--134
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 129--134
+
+ []
+
+[6 <./results/ray_casting_2.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 136--138
+
+ []
+
+<results/sensor_model_desc.png, id=198, 581.17125pt x 277.035pt>
 File: results/sensor_model_desc.png Graphic file (type png)
 <use results/sensor_model_desc.png>
-Package pdftex.def Info: results/sensor_model_desc.png  used on input line 120.
+Package pdftex.def Info: results/sensor_model_desc.png  used on input line 146.
 (pdftex.def)             Requested size: 409.71692pt x 195.3097pt.
-
-Underfull \hbox (badness 10000) in paragraph at lines 117--122
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 117--122
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 123--125
-
- []
-
-[6 <./results/sensor_model_desc.png>]
-<./results/sensor_model_opt.png, id=186, 1251.67625pt x 604.2575pt>
+[7 <./results/sensor_model_pic.png>]
+<./results/sensor_model_opt.png, id=209, 1251.67625pt x 604.2575pt>
 File: ./results/sensor_model_opt.png Graphic file (type png)
 <use ./results/sensor_model_opt.png>
-Package pdftex.def Info: ./results/sensor_model_opt.png  used on input line 140.
+Package pdftex.def Info: ./results/sensor_model_opt.png  used on input line 158.
 (pdftex.def)             Requested size: 375.50577pt x 181.27864pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 141.
+(caption)                particular \caption on input line 159.
 See the caption package documentation for explanation.
 
-<LowVarianceResampling.png, id=188, 368.1253pt x 258.21469pt>
+[8 <./results/sensor_model_desc.png> <./results/sensor_model_opt.png (PNG copy)>]
+<LowVarianceResampling.png, id=220, 368.1253pt x 258.21469pt>
 File: LowVarianceResampling.png Graphic file (type png)
 <use LowVarianceResampling.png>
-Package pdftex.def Info: LowVarianceResampling.png  used on input line 155.
+Package pdftex.def Info: LowVarianceResampling.png  used on input line 173.
 (pdftex.def)             Requested size: 368.1244pt x 258.21405pt.
-[7 <./results/sensor_model_opt.png (PNG copy)>]
-<results/resampling_2.png, id=199, 1582.91376pt x 1765.59625pt>
+<results/resampling_2.png, id=223, 1582.91376pt x 1765.59625pt>
 File: results/resampling_2.png Graphic file (type png)
 <use results/resampling_2.png>
-Package pdftex.def Info: results/resampling_2.png  used on input line 163.
+Package pdftex.def Info: results/resampling_2.png  used on input line 181.
 (pdftex.def)             Requested size: 409.71692pt x 456.9967pt.
- [8 <./LowVarianceResampling.png>] [9 <./results/resampling_2.png (PNG copy)>]
-Underfull \hbox (badness 10000) in paragraph at lines 199--200
-
- []
-
-[10]
-Underfull \hbox (badness 10000) in paragraph at lines 247--249
+ [9 <./LowVarianceResampling.png>] [10 <./results/resampling_2.png (PNG copy)>]
+Underfull \hbox (badness 10000) in paragraph at lines 217--218
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 256--257
+Underfull \hbox (badness 10000) in paragraph at lines 244--247
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--247
 
  []
 
 [11]
-Underfull \hbox (badness 10000) in paragraph at lines 272--273
+Underfull \hbox (badness 10000) in paragraph at lines 270--272
 
  []
 
-[12] (./hw1.aux)
+[12]
+Underfull \hbox (badness 10000) in paragraph at lines 279--280
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 295--296
+
+ []
+
+[13]
+<results/adaptive_particles.PNG, id=258, 663.22781pt x 366.61969pt>
+File: results/adaptive_particles.PNG Graphic file (type png)
+<use results/adaptive_particles.PNG>
+Package pdftex.def Info: results/adaptive_particles.PNG  used on input line 301.
+(pdftex.def)             Requested size: 409.71692pt x 226.4851pt.
+ [14 <./results/adaptive_particles.PNG>] (./hw1.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `hw1.out' has not changed.
-(rerunfilecheck)             Checksum: 2606A6A0A19C70D9BE4A801D9607E5A8;2985.
+(rerunfilecheck)             Checksum: A526F7342A2DF3A479F5EB40E779C542;3133.
  ) 
 Here is how much of TeX's memory you used:
- 12430 strings out of 478268
- 194729 string characters out of 5846347
- 490318 words of memory out of 5000000
- 30401 multiletter control sequences out of 15000+600000
+ 12466 strings out of 478268
+ 195531 string characters out of 5846347
+ 491318 words of memory out of 5000000
+ 30421 multiletter control sequences out of 15000+600000
  489984 words of font info for 86 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 68i,9n,77p,980b,493s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 68i,9n,77p,980b,497s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}{/usr/local/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}</usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfbx1728.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1440.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm2074.pfb></usr/local/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfti1200.pfb>
-Output written on hw1.pdf (12 pages, 1363257 bytes).
+Output written on hw1.pdf (14 pages, 1442004 bytes).
 PDF statistics:
- 319 PDF objects out of 1000 (max. 8388607)
- 256 compressed objects within 3 object streams
- 57 named destinations out of 1000 (max. 500000)
- 233 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 355 PDF objects out of 1000 (max. 8388607)
+ 284 compressed objects within 3 object streams
+ 69 named destinations out of 1000 (max. 500000)
+ 264 words of extra memory for PDF output out of 10000 (max. 10000000)
 

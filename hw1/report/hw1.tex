@@ -40,6 +40,10 @@
 \tableofcontents
 
 \clearpage
+
+\section{Introduction}
+For this homework, we implemented particle filter for localization of robot when the map is known. We used Python language for implementation. In the sections below we describe the details of motion model, sensor model, ray casting, resampling, parameter tuning and suggestions for future work.
+
 \section{Motion Model}
 \subsection{Description}
 The motion model acts as the prediction step in the particle filter. We follow the odometry motion model mentioned in \cite{ProbRob} as shown below:
@@ -80,11 +84,11 @@ x_{t1} = \left\{
 \subsection{Ray Casting}
 \subsubsection{Description}
 RayCasting is needed for estimation of true ranges at various angles.\\\\ 
-To make implementation easier, we created a \textit{RayCasting} module that performs ray casting. The \textit{get\_true\_ranges\_vec} function is invoked to compute ranges at various angles for all particles.
-\subsubsection{Optimization}
+To make implementation easier, we created a \textit{RayCasting} module that performs ray casting. The \textit{get\_true\_ranges\_vec} function is invoked to compute ranges at various angles for all particles. \textit{sensor\_location} function adjusts the state of robots by $25$ cm to take into account the distance between robot and the sensor.
+\subsubsection{Implementation}
 Ray Casting is the most computationally expensive part of the code. We implemented the following changes to naive implementation of ray casting to improve the performance.
 
-\begin{itemize}
+\begin{enumerate}
   \item To avoid redundant computations, we perform ray casting only once in constructor function using the \textit{relative\_ray\_casting} function. This function casts rays relative to the robot in it's canonical orientation. At all future time steps, the points along these rays are simply rotated and translated to match the position and orientation of robot! This led to massive gains in performance. The implementation of \textit{relative\_ray\_casting} function is shown below.
   \begin{itemize}
     \item 
@@ -97,7 +101,7 @@ Ray Casting is the most computationally expensive part of the code. We implement
       \end{center}
     \end{minipage}
   \end{itemize}
-  \item Once the rays have been oriented based on location and orientation of a particle, the logic used to measure the range along each ray at which it encounters an obstacle or goes out of the map has been vectorized. Compared to the naive implementation of this logic using nested for-loops, the fully vectorized implementation is approximately 9.5x faster.  The vectorized logic is shown below
+  \item Once the rays have been oriented based on location and orientation of a particle, the logic used to measure the range along each ray at which it encounters an obstacle or goes out of the map has been vectorized. Compared to the naive implementation of this logic using nested for-loops, the fully vectorized implementation is approximately \textbf{9.5x faster}.  The vectorized logic is shown below
   \item Vectorize the code to enable computation of ranges for all particles simultaneously instead of performing ray casting in a loop seperately for each particle
   \begin{itemize}
     \item 
@@ -110,16 +114,25 @@ Ray Casting is the most computationally expensive part of the code. We implement
       \end{center}
     \end{minipage}
   \end{itemize}
-\end{itemize}
-The time taken to measure ground truth ranges at 36 angles for 500 particles using our optimized implementation is just around 0.5 seconds on Apple Macbook M1 Pro system.
-\subsection{Sensor Model}
-\subsubsection{Description}
-The Sensor Model is responsible for estimating how well each particle explains the observed range sensor data. For our implementation, we followed the range sensor model described in [1] where the probability distribution of sensor measurement is modeled as a weighted average of four components that take into account randomness, presence of obstacles and errors in measurements leading to the sensor incorrectly measuring maximum range. \\\\
+\end{enumerate}
+
+\subsection{Results}
+
+The figure below shows rays cast from a sample robot state. The time taken to measure ground truth ranges at 36 angles for 1000 particles using our optimized implementation is just around \textbf{1.05 seconds} on Apple Macbook M1 Pro system.
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.9\linewidth]{results/sensor_model_desc.png}
-  \caption{Description of Sensor model}
+  \includegraphics[width=0.9\linewidth]{results/ray_casting_2.png}
+  \caption{Rays cast at a sample point and orientation}
 \end{figure}
+\subsection{Sensor Model}
+\subsubsection{Description}
+The Sensor Model is responsible for estimating how well each particle explains the observed range sensor data. For our implementation, we followed the range sensor model described in \cite{ProbRob} where the probability distribution of sensor measurement is modeled as a weighted average of four components that take into account randomness, presence of obstacles and errors in measurements leading to the sensor incorrectly measuring maximum range. These four components are shown in the figure below.\\\\
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{results/sensor_model_pic.png}
+  \caption{The four components of Sensor model}
+\end{figure}
+
 The Sensor Model has been implemented in \textit{SensorModel} class in \textit{sensor\_model.py}. The constructor accepts the occupancy map and number of particles as inputs.\\\\
 The function \textit{beam\_range\_finder\_model} is called from \textit{main.py} everytime a laser reading is encountered. This function performs three important tasks:
 \begin{enumerate}
@@ -127,7 +140,12 @@ The function \textit{beam\_range\_finder\_model} is called from \textit{main.py}
   \item Use ground truth and sensor readings to compute probabilities of each measurement for each particle
   \item Aggregate probabilities \textit{for} each particle using sum of logarithm of probabilities for numerical stability and then normalize probabilities \textit{across} particles using softmax operation to ensure that probabilities sum to 1.
 \end{enumerate}
-\subsubsection{Optimization}
+\subsubsection{Implementation}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{results/sensor_model_desc.png}
+  \caption{Description of Sensor model}
+\end{figure}
 The \textit{SensorModel} module takes up almost all ($99.1\%$ according to our estimates) of execution time. This makes optimization absolutely essential. We made the following changes to naive implementation to speed up the code:
 \begin{enumerate}
   \item We vectorized the function \textit{beam\_range\_finder\_model} and all the functions it invokes to compute probabilities of all particles at once instead of invoking the function iteratively for each particle
@@ -218,23 +236,28 @@ Parameter tuning was undoubtedly the most rigorous and important part of the per
   \hline
   $z_{hit}$ & $z_{short}$ & $z_{max}$ & $z_{rand}$ & $\sigma_{hit}$ & $\lambda_{short}$ \\
   \hline
-  100 & 50 & 50 & 100000 & 75 & 0.5 \\
+  10 & 5 & 5 & 1000 & 75 & 0.5 \\
   \hline
 \end{tabular}
 \end{center}
-\section{Links to Our Videos}
+\section{Results}
+The results can be found at the links below. Our results match our observations based on the provided reference GIF \textit{robotmovie1.gif} for Log 1. However we suspect that there are errors in result on Log 2.\\\\
+The errors could be due to our extremely optimized implementation of Ray Casting whose one drawback is introduction of quantization noise because we pre-compute all our rays and round particles along rays to integer coordinates on maps.\\\\
+The Google Drive links to our videos are provided below. Please note that the video for Log 2 is at a 4x speed to reduce the run time from over 4 minutes to just over 1 minute.
 \begin{center}
 \begin{tabular}{||c | c||} 
   \hline
-  Robot Log 1 & Robot Log 4 \\
+  Robot Log 1 & Robot Log 2 \\
   \hline
-  \href{https://youtu.be/PKaJdCMeA9U}{Log 1} & \href{https://youtu.be/ilJhJMrWBzg}{Log 4} \\
+  \href{https://drive.google.com/file/d/1qt8UM7HHN9xPAYrRJYI5JoRR8iQb3wQ5/view?usp=sharing}{Log 1} & \href{https://drive.google.com/file/d/1-rfNtqJuf1p7kxYXcXjpizGDpsq9AJ4A/view?usp=sharing}{Log 2} \\
   \hline
 \end{tabular}
 \end{center}
 
 \section{Future Work}
 \begin{enumerate}
+  \item As discussed in previous sections, our optimized ray casting performs 9.5x better than naive implementation. However there is scope for further improvement in performance with the use of GPUs that excel at matrix multiplications and additions
+  \item Another interesting way to speed up ray casting algorithm that we haven't explored for the homework is to approximate all obstacles as a set of straight lines. Under this approximation, we just need to compute points of intersection of a set of lines and any given ray and choose one of the points of intersection as the obstacle. This requires a lot fewer computational resources than ray traversal. 
   \item Though we do well after tuning parameters, we still have occasional cases where we fail. For logs besides log 1, we are not as robust as we would like. We start to see the particles start to converge but then jump to the wrong location. I think we could get better results if we optimized for each log but that is not ideal in the slightest.
   \item In genreal, if we are in an area with more open space and less measureable landmarks, we may require different parameters. For this, having an adaptive number of particles and dynamic/learned parameter values may help. For the adaptive number of particles, as we increase and decrease confidence in the measurements around us, it would be ideal to add more particles to explore and reduce particles when we become more confident in our estimate. Furthermore, learned or adaptive parameters that could have a similar effect but may be able to infer about a shift in the sensor distribution and account for more hardware and noise related issues.
 \end{enumerate}
@@ -257,7 +280,7 @@ While implementing this homework, we found increasingly that a high number of pa
 
 \noindent From these observations, we present the idea of analyzing the entropy of the particles' probabilities in order to inform our algorithm if we need more or less particles. The entropy acts as a level of uncertainity about the distriubtion, with 0 being a single particle with all the probability and 1 being a uniformly distributed particle set. We define entropy w.r.t. weights $w_t^{(i)}$ as:
 
-$$ H(w_t) = - \sum_{i}^{M} log(w_t^{(i)})w_t^{(i)} $$
+$$ H(w_t) = - \sum_{i=1}^{M} log(w_t^{(i)})w_t^{(i)} $$
 
 
 \noindent However, entropy by itself is not suitable. It may be more convenient to utilize the entropy at two consecutive timesteps and calculate the the information gain from frame t to frame t+1:
@@ -272,6 +295,13 @@ $$M = Me^{H(w_{t_1}) - H(w_{t_0})}$$
 \noindent If there is no information gained, the number of particles will stay the same. If the entropy increases, more particles will be added, if the entropy decreases, particles will be removed.\\
 
 \noindent A few implementation details include the frequency of changing the number of particles. Our initial experimentation had a max frequency of 2. That is, at most, the number of particles would change every other time step. This was done to ensure that we are not artifically inflating the entropy by adding more particles. Therefore, we only calculate information gain when two timesteps have the same number of particles. Lastly, we enforce a minimum number of particles of 50 to ensure our particles do not drop too low.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{results/adaptive_particles.PNG}
+  \caption{Code for adaptive particles}
+\end{figure}
+
 \begin{thebibliography}{9}
   \bibitem{ProbRob}
   Sebastian Thrun, Wolfram Burgard, and Dieter Fox (2005) \emph{Probabilistic Robotics}, MIT Press

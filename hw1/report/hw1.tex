@@ -218,24 +218,16 @@ Parameter tuning was undoubtedly the most rigorous and important part of the per
   \hline
   $z_{hit}$ & $z_{short}$ & $z_{max}$ & $z_{rand}$ & $\sigma_{hit}$ & $\lambda_{short}$ \\
   \hline
-  100 & 50 & 50 & 100000 & 75 & 0.5 \\
+  2.5 & .5 & .5 & 1225 & 75 & 0.5 \\
   \hline
 \end{tabular}
 \end{center}
 \section{Links to Our Videos}
-\begin{center}
-\begin{tabular}{||c | c||} 
-  \hline
-  Robot Log 1 & Robot Log 4 \\
-  \hline
-  \href{https://youtu.be/PKaJdCMeA9U}{Log 1} & \href{https://youtu.be/ilJhJMrWBzg}{Log 4} \\
-  \hline
-\end{tabular}
-\end{center}
+\href{https://drive.google.com/drive/folders/1FlG3XrkM6avgEq5bGeyH-CDgz_LnASk3?usp=sharing}{Google Drive Link to Our Video for Logs 1, 2, and 5}
 
 \section{Future Work}
 \begin{enumerate}
-  \item Though we do well after tuning parameters, we still have occasional cases where we fail. For logs besides log 1, we are not as robust as we would like. We start to see the particles start to converge but then jump to the wrong location. I think we could get better results if we optimized for each log but that is not ideal in the slightest.
+  \item Though we do well after tuning parameters, we still have occasional cases where we fail. For logs besides log 1, we are not as robust as we would like. It seems that there is some parameter tuning required for each log to be perfect. We start to see the particles start to converge but then jump to the wrong location. I think we could get better results if we optimized for each log but that is not ideal in the slightest.
   \item In genreal, if we are in an area with more open space and less measureable landmarks, we may require different parameters. For this, having an adaptive number of particles and dynamic/learned parameter values may help. For the adaptive number of particles, as we increase and decrease confidence in the measurements around us, it would be ideal to add more particles to explore and reduce particles when we become more confident in our estimate. Furthermore, learned or adaptive parameters that could have a similar effect but may be able to infer about a shift in the sensor distribution and account for more hardware and noise related issues.
 \end{enumerate}
 

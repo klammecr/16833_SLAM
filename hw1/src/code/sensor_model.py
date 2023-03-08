@@ -227,7 +227,7 @@ class SensorModel:
         # prob = prob/np.sum(prob)
         
         
-        return prob
+        return prob, z_gt
 
 
 if __name__ == "__main__":

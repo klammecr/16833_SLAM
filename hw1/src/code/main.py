@@ -109,28 +109,23 @@ if __name__ == '__main__':
     """
     Initialize Parameters
     """
-    import cProfile
-    import sys
-    pr = cProfile.Profile()
-    pr.enable()
-
-    np.random.seed(5875)
+    np.random.seed(6969)
     parser = argparse.ArgumentParser()
     working_dir = os.getcwd()
     parser.add_argument('--path_to_map', default=f'../data/map/wean.dat')
-    parser.add_argument('--path_to_log', default=f'../data/log/robotdata1.log')
+    parser.add_argument('--path_to_log', default=f'../data/log/robotdata5.log')
     parser.add_argument('--output', default='results')
     parser.add_argument('--num_particles', default=500, type=int)
     parser.add_argument('--visualize', action='store_true')
     parser.add_argument('--video', action='store_true')
-    parser.add_argument('--z_hit',   default=100, type=float)
-    parser.add_argument('--z_short', default=50, type=float)
-    parser.add_argument('--z_max',   default=50, type=float)
-    parser.add_argument('--z_rand',  default=100000, type=float)
+    parser.add_argument('--z_hit',   default=2.5, type=float)
+    parser.add_argument('--z_short', default=.5, type=float)
+    parser.add_argument('--z_max',   default=.5, type=float)
+    parser.add_argument('--z_rand',  default=1225, type=float)
     parser.add_argument('--alpha1',  default=1e-4, type=float)
     parser.add_argument('--alpha2',  default=1e-4, type=float)
-    parser.add_argument('--alpha3',  default=7.5e-4, type=float)
-    parser.add_argument('--alpha4',  default=7.5e-4, type=float)
+    parser.add_argument('--alpha3',  default=1e-2, type=float)
+    parser.add_argument('--alpha4',  default=1e-2, type=float)
     args = parser.parse_args()
     os.makedirs(args.output, exist_ok=True)
         
@@ -152,7 +147,12 @@ if __name__ == '__main__':
 
     # Setup the visualizer
     if args.visualize:
-        vis = Visualizer(occupancy_map, args.output, video = args.video)
+        name = args.path_to_log.split('/')[-1].split('.')[0]
+        if name == "robotdata1":
+            name = "Robot Log 1"
+        elif name == "robotdata4":
+            name = "Robot Log 4"
+        vis = Visualizer(occupancy_map, args.output, name = name, video = args.video)
 
     # Create init particles
     num_particles = args.num_particles
@@ -214,8 +214,9 @@ if __name__ == '__main__':
 
         # step 2: apply sensor model
         if (meas_type == "L"):
-            w_t  = sensor_model.beam_range_finder_model(z_t, x_t1, sort_idxs)
+            w_t, z_gt  = sensor_model.beam_range_finder_model(z_t, x_t1, sort_idxs)
         else:
+            z_gt = None
             if sort_idxs is None:
                 w_t = X_bar[:, 3]
             else:
@@ -235,6 +236,7 @@ if __name__ == '__main__':
             sort_idxs = None
             
         # visualize map
+        vis.visualize_ranges(X_bar, z_gt)
         vis.visualize_timestep(X_bar, time_stamp, sort_idxs)
 
         # reset parameters for next iteration

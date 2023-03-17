@@ -79,19 +79,21 @@ def draw_traj_and_map(X, last_X, P, t):
     plt.waitforbuttonpress(0)
 
 
-def warp2pi(angle_rad):
+def wrap2pi(angle_rad):
     """
-    TODO: warps an angle in [-pi, pi]. Used in the update step.
+    Wrap an angle in [-pi, pi]. Used in the update step.
 
     \param angle_rad Input angle in radius
     \return angle_rad_warped Warped angle to [-\pi, \pi].
     """
-    return angle_rad
+    # Phase shift to bring to 2pi, deal with wrap around then undo phase shift
+    angle_wrap = ((angle_rad + np.pi) % (2*np.pi)) - np.pi   
+    return angle_wrap
 
 
 def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
     '''
-    TODO: initialize landmarks given the initial poses and measurements with their covariances
+    Initialize landmarks given the initial poses and measurements with their covariances
     \param init_measure Initial measurements in the form of (beta0, l0, beta1, l1, ...).
     \param init_measure_cov Initial covariance matrix of shape (2, 2) per landmark given parameters.
     \param init_pose Initial pose vector of shape (3, 1).
@@ -101,11 +103,44 @@ def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
     \return landmarks Numpy array of shape (2k, 1) for the state.
     \return landmarks_cov Numpy array of shape (2k, 2k) for the uncertainty.
     '''
-
-    k = init_measure.shape[0] // 2
-
-    landmark = np.zeros((2 * k, 1))
+    # Init/helper variables
+    k            = init_measure.shape[0] // 2
+    landmark     = np.zeros((2 * k, 1))
     landmark_cov = np.zeros((2 * k, 2 * k))
+
+    # Extract out the initial bearing
+    init_betas = init_measure[0::2]
+
+    # Extract out the initial ranges
+    init_ranges = init_measure[1::2]
+
+    # Impart noise on the pose
+    noisy_px  = np.random.normal(init_pose[0], init_pose_cov[0,0])
+    noisy_py  = np.random.normal(init_pose[1], init_pose_cov[1,1])
+    noisy_pth = np.random.normal(init_pose[2], init_pose_cov[2,2])
+
+    # Impart noise on the measurements
+    noisy_beta = np.random.normal(loc = init_betas,  scale = init_measure_cov[0,0])
+    noisy_r    = np.random.normal(loc = init_ranges, scale = init_measure_cov[1,1])
+
+    # Calculate landmarks x & y component
+    l_x = noisy_px + noisy_r * np.cos(noisy_pth + noisy_beta)
+    l_y = noisy_py + noisy_r * np.sin(noisy_pth + noisy_beta)
+
+    # Calculate the deviation of the landmarks from the expectation (mean)
+    residual_x = l_x - (init_pose[0] + init_ranges * np.cos(init_betas + init_pose[2]))
+    residual_y = l_y - (init_pose[1] + init_ranges * np.sin(init_betas + init_pose[2]))
+
+    # Put the landmrks in the np array
+    landmark[0::2] = l_x
+    landmark[1::2] = l_y
+
+    # Calculate landmarks covariance matrix (deviation of the landmarks from the mean)
+    diag = np.zeros(landmark_cov.shape[0])
+    diag[0::2] = (residual_x**2)[:, 0]# TODO: Is this the correct way to do it?
+    diag[1::2] = (residual_y**2)[:, 0]
+    np.fill_diagonal(landmark_cov, diag)
+
 
     return k, landmark, landmark_cov
 
@@ -175,7 +210,7 @@ def main():
     sig_r2 = sig_r**2
 
     # Open data file and read the initial measurements
-    data_file = open("../data/data.txt")
+    data_file = open("hw2/data/data.txt")
     line = data_file.readline()
     fields = re.split('[\t ]', line)[:-1]
     arr = np.array([float(field) for field in fields])
@@ -191,7 +226,7 @@ def main():
     pose_cov = np.diag([0.02**2, 0.02**2, 0.1**2])
 
     ##########
-    # TODO: initialize landmarks
+    # Initialize landmarks
     k, landmark, landmark_cov = init_landmarks(measure, measure_cov, pose,
                                                pose_cov)
 

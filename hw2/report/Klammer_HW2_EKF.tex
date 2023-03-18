@@ -120,8 +120,8 @@ $$\beta = wrap2pi(arctan2(l_y - p_y, l_x - p_x) - p_{\theta} + n_{\beta})$$
 
 $$H_p = 
 \begin{bmatrix}
-    \frac{\partial r}{\partial p_x} & \frac{\partial r}{\partial p_y} & \frac{\partial r}{\partial p_{\theta}} \\
-    \frac{\partial \beta}{\partial p_x} & \frac{\partial \beta}{\partial p_y} & \frac{\partial \beta}{\partial p_{\theta}}
+    \frac{\partial \beta}{\partial p_x} & \frac{\partial \beta}{\partial p_y} & \frac{\partial \beta}{\partial p_{\theta}} \\
+    \frac{\partial r}{\partial p_x} & \frac{\partial r}{\partial p_y} & \frac{\partial r}{\partial p_{\theta}} 
 \end{bmatrix}$$
 
 
@@ -167,8 +167,9 @@ $$\delta = (l_x - p_x)^2 + (l_y - p_y)^2$$
 
 $$H_p = 
 \begin{bmatrix}
-    \frac{\delta_x}{\delta^{\frac{1}{2}}} & \frac{\delta_y}{\delta^{\frac{1}{2}}}  & 0 \\
-    \frac{\delta_y}{\delta} & \frac{-\delta_x}{\delta} & -1
+    \frac{\delta_y}{\delta} & \frac{-\delta_x}{\delta} & -1 \\
+    \frac{\delta_x}{\delta^{\frac{1}{2}}} & \frac{\delta_y}{\delta^{\frac{1}{2}}}  & 0
+    
 \end{bmatrix}$$
 
 \clearpage
@@ -195,6 +196,11 @@ $$H_t =
 \end{bmatrix}$$
 
 \section{Implementation and Evaluation}
-\subsection*{1}
-\textbf{6 landmarks in t}
+\subsection*{Question 1}
+\textbf{6 landmarks present}
+\subsection*{Question 2}
+\begin{figure}
+    \includegraphics[width=0.95\textwidth]{EKF_SLAM_Result.png}
+    \caption{EKF SLAM Result}
+\end{figure}
 \end{document}

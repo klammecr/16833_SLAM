@@ -137,7 +137,7 @@ def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
 
     # Calculate landmarks covariance matrix (deviation of the landmarks from the mean)
     diag = np.zeros(landmark_cov.shape[0])
-    diag[0::2] = (residual_x**2)[:, 0]# TODO: Is this the correct way to do it?
+    diag[0::2] = (residual_x**2)[:, 0]
     diag[1::2] = (residual_y**2)[:, 0]
     np.fill_diagonal(landmark_cov, diag)
 
@@ -153,17 +153,89 @@ def predict(X, P, control, control_cov, k):
     \param control Control signal of shape (2, 1) in the polar space that moves the robot.
     \param control_cov Control covariance of shape (3, 3) in the (x, y, theta) space given the parameters.
     \param k Number of landmarks.
-
     \return X_pre Predicted X state of shape (3 + 2k, 1).
     \return P_pre Predicted P covariance of shape (3 + 2k, 3 + 2k).
     '''
 
-    return X, P
+    dt = control[0][0]
+    at = control[1][0]
+
+    x = X[0][0]
+    y = X[1][0]
+    theta = X[2][0]
+
+    updateX = np.zeros((3 + 2*k, 1))
+    updateX[0][0] = dt*np.cos(theta)
+    updateX[1][0] = dt*np.sin(theta)
+    updateX[2][0] = at
+    X_pre = X + updateX
+
+    Gt = np.eye(3 + 2*k)
+    Gxyt = np.array([[1, 0, -dt*np.sin(theta)],
+                    [0, 1, dt*np.cos(theta)], [0, 0, 1]])
+
+    Gt[0:3, 0:3] = Gxyt
+
+    G = Gt @ P @ (Gt.T)
+
+    R = np.zeros((3 + 2*k, 3 + 2*k))
+    rot = np.array([[np.cos(theta), -np.sin(theta), 0],
+                   [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
+    Rxyt = rot @ control_cov @ (rot.T)
+    R[0:3, 0:3] = Rxyt
+
+    P_pre = G+R
+    return X_pre, P_pre
+
+def predict(X, P, control, control_cov, k):
+    '''
+    Predict step in EKF SLAM with derived Jacobians.
+    \param X State vector of shape (3 + 2k, 1) stacking pose and landmarks.
+    \param P Covariance matrix of shape (3 + 2k, 3 + 2k) for X.
+    \param control Control signal of shape (2, 1) in the polar space that moves the robot.
+    \param control_cov Control covariance of shape (3, 3) in the (x, y, theta) space given the parameters.
+    \param k Number of landmarks.
+
+    \return X_pre Predicted X state of shape (3 + 2k, 1).
+    \return P_pre Predicted P covariance of shape (3 + 2k, 3 + 2k).
+    '''
+    # Extract out the controls
+    dt      = control[0]
+    alpha_t = control[1]
+
+    # Update the mean by the control input
+    X_out     = X.copy()
+    X_out[0]  += dt * np.cos(X[2])
+    X_out[1]  += dt * np.sin(X[2])
+    X_out[2]  += alpha_t
+
+    # Update the covariance with the jacobians (G_{t+1}) and the process noise (R_{t+1})
+    jacobian = np.eye(3 + 2*k) # Make identity so we dont squash the landmark variance
+    # This is for the x component of the pose and the landmarks
+    jacobian[0, 2]    = -control[0] * np.sin(X[2])
+    # This is for the y component of the pose and the landmarks
+    jacobian[1, 2]    = control[0]  * np.cos(X[2])
+    
+    # Take the control coviariance and apply it to the pose and landmarks
+    rot_robot     = np.array([[np.cos(X[2]), -np.sin(X[2]), 0],
+                             [np.sin(X[2]), np.cos(X[2]), 0],
+                             [0, 0, 1]])
+    
+    # Rotate the robot to align with its orientation via a matrix
+    R      = rot_robot @ control_cov @ rot_robot.T
+    R_rsz  = np.zeros((3+2*k, 3+2*k))
+    R_rsz[0:3, 0:3]  = R  
+
+    # Apply 
+    P_ret = jacobian @ P @ jacobian.T + R_rsz
+
+
+    return X_out, P_ret
 
 
 def update(X_pre, P_pre, measure, measure_cov, k):
     '''
-    TODO: update step in EKF SLAM with derived Jacobians.
+    Update step in EKF SLAM with derived Jacobians.
     \param X_pre Predicted state vector of shape (3 + 2k, 1) from the predict step.
     \param P_pre Predicted covariance matrix of shape (3 + 2k, 3 + 2k) from the predict step.
     \param measure Measurement signal of shape (2k, 1).
@@ -173,6 +245,73 @@ def update(X_pre, P_pre, measure, measure_cov, k):
     \return X Updated X state of shape (3 + 2k, 1).
     \return P Updated P covariance of shape (3 + 2k, 3 + 2k).
     '''
+    # Extract out the bearing and ranges
+    betas  = measure[0::2]
+    ranges = measure[1::2]
+
+    # Get landmarks
+    l_x = X_pre[0] + ranges * np.cos(X_pre[2] + betas)
+    l_y = X_pre[1] + ranges * np.sin(X_pre[2] + betas)
+
+    # Convenience variables
+    landmark_measurements = np.hstack((l_x, l_y))
+    robot_loc             = np.reshape(np.concatenate((X_pre[0], X_pre[1])), (1, 2))
+    robot_loc             = np.repeat(robot_loc, k, axis = 0)
+
+    # Variables to be used in the jacobians and calculations
+    delta_x = landmark_measurements[:, 0] - robot_loc[:, 0]
+    delta_y = landmark_measurements[:, 1] - robot_loc[:, 1]
+    delta   = delta_x**2 + delta_y**2
+
+    # Find the distance to the landmarks
+    r = delta**0.5
+    r += np.random.normal(0, measure_cov[1,1], size = k)
+
+    # Find the bearing of the landmarks from the robot
+    world_angle   = np.arctan2(delta_y, delta_x)
+    bearing_angle = world_angle - X_pre[2]
+    bearing_angle += np.random.normal(0, measure_cov[0,0], size = k) # Impart the noise
+    bearing_angle = wrap2pi(bearing_angle) # Get the angle in the valid range
+
+    # Calculate the measurement jacobian (transforms poses to measurements)
+    # Measurement x State
+    H = np.zeros((2*k, 2*k + 3))
+    for i in range(k):
+        # Poses
+        H[2*i+1,   0] = delta_x[i]/delta[i]**0.5
+        H[2*i+1,   1] = delta_y[i]/delta[i]**0.5
+        H[2*i, 0]     = delta_y[i]/delta[i]
+        H[2*i, 1]     = -delta_x[i]/delta[i]
+        H[2*i, 2]     = -1
+
+        # Calculate for the measurement of the landmark
+        landmark_idx = 3 + 2*i
+        H[2*i + 1, landmark_idx]     = -delta_x[i]/delta[i]**0.5
+        H[2*i + 1, landmark_idx + 1] = -delta_y[i]/delta[i]**0.5
+        H[2*i,     landmark_idx]     = -1/delta_y[i]
+        H[2*i,     landmark_idx + 1] = 1/delta_x[i]
+
+    # Reform the measurement noise so it can be additive
+    Q          = np.zeros((2*k, 2*k))
+    diag       = np.zeros((2*k))
+    diag[0::2] = measure_cov[0,0]
+    diag[1::2] = measure_cov[1,1]
+    np.fill_diagonal(Q, diag)
+
+    # Calculate the kalman gain to help form our weighted sum
+    K = P_pre @ H.T @ np.linalg.inv(H @ P_pre @ H.T + Q)
+
+    # Calculate the residual between the empirical measurements and the expected measurements
+    h_ut          = np.zeros_like(measure)
+    h_ut[0::2, 0] = bearing_angle
+    h_ut[1::2, 0] = r
+    residual   = measure - h_ut
+
+    # Calculate the mean
+    X_pre += K @ residual
+
+    # Calculate the covariance
+    P_pre = (np.eye(2*k + 3) - K @ H) @ P_pre
 
     return X_pre, P_pre
 
@@ -252,7 +391,7 @@ def main():
             control = np.array([[d], [alpha]])
 
             ##########
-            # TODO: predict step in EKF SLAM
+            # Predict step in EKF SLAM
             X_pre, P_pre = predict(X, P, control, control_cov, k)
 
             draw_traj_and_pred(X_pre, P_pre)
@@ -263,7 +402,7 @@ def main():
             measure = np.expand_dims(arr, axis=1)
 
             ##########
-            # TODO: update step in EKF SLAM
+            # Update step in EKF SLAM
             X, P = update(X_pre, P_pre, measure, measure_cov, k)
 
             draw_traj_and_map(X, last_X, P, t)

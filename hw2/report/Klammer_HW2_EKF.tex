@@ -168,7 +168,7 @@ $$\delta = (l_x - p_x)^2 + (l_y - p_y)^2$$
 $$H_p = 
 \begin{bmatrix}
     \frac{\delta_y}{\delta} & \frac{-\delta_x}{\delta} & -1 \\
-    \frac{\delta_x}{\delta^{\frac{1}{2}}} & \frac{\delta_y}{\delta^{\frac{1}{2}}}  & 0
+    -\frac{\delta_x}{\delta^{\frac{1}{2}}} & -\frac{\delta_y}{\delta^{\frac{1}{2}}}  & 0
     
 \end{bmatrix}$$
 
@@ -177,22 +177,23 @@ $$H_p =
 
 $$H_t = 
 \begin{bmatrix}
-    \frac{\partial r}{\partial l_x} & \frac{\partial r}{\partial l_y} \\
-    \frac{\partial \beta}{\partial l_x} & \frac{\partial \beta}{\partial l_y}
+    \frac{\partial \beta}{\partial l_x} & \frac{\partial \beta}{\partial l_y} \\
+    \frac{\partial r}{\partial l_x} & \frac{\partial r}{\partial l_y}
+    
 \end{bmatrix}$$
 
-$$\frac{\partial r}{\partial l_x} = \frac{1}{2} \delta^{-\frac{1}{2}} * -2\delta_x = \frac{-\delta_x}{\delta^{\frac{1}{2}}}$$
+$$\frac{\partial r}{\partial l_x} = \frac{1}{2} \delta^{-\frac{1}{2}} * 2\delta_x = \frac{\delta_x}{\delta^{\frac{1}{2}}}$$
 
-$$\frac{\partial r}{\partial l_y} = \frac{1}{2} \delta^{-\frac{1}{2}} * -2\delta_y = \frac{-\delta_y}{\delta^{\frac{1}{2}}}$$
+$$\frac{\partial r}{\partial l_y} = \frac{1}{2} \delta^{-\frac{1}{2}} * 2\delta_y = \frac{\delta_y}{\delta^{\frac{1}{2}}}$$
 
-$$\frac{\partial \beta}{\partial l_x} = \frac{\delta_x^2}{\delta_y^2} * \frac{-\delta_y}{\delta_x^2} = \frac{-1}{\delta_y}$$
+$$\frac{\partial \beta}{\partial l_x} = \frac{\delta_x^2}{\delta_x^2 + \delta_y^2} * \frac{-\delta_y}{\delta_x^2} = \frac{-\delta_y}{\delta}$$
 
-$$\frac{\partial \beta}{\partial l_y} = \frac{1}{\delta_x}$$
+$$\frac{\partial \beta}{\partial l_y} = \frac{\delta_x^2}{\delta} * \frac{\delta_x}{\delta_x^2} = \frac{\delta_x}{\delta}$$
 
 $$H_t = 
 \begin{bmatrix}
-    \frac{-\delta_x}{\delta^{\frac{1}{2}}} & \frac{-\delta_x}{\delta^{\frac{1}{2}}} \\
-    \frac{-1}{\delta_y} & \frac{1}{\delta_x}
+    \frac{-\delta_y}{\delta} & \frac{\delta_x}{\delta} \\
+    \frac{\delta_x}{\delta^{\frac{1}{2}}} &  \frac{\delta_y}{\delta^{\frac{1}{2}}}
 \end{bmatrix}$$
 
 \clearpage
@@ -208,8 +209,21 @@ $$H_t =
 \subsection*{Question 3}
 \textbf{Answer: As the robot is moving, the magenta ellipses help give probable locations of the robot given the control in the prediction step and help focus on where the robot likely is. Once the update step comes along, this prediction can be refined using the measurements of the landmarks to hone in on a lower variance estimate. In this case, it is incredibly hood because there is not much variance or drift in the landmark measurements (green ellipses are very small) so after the update step, we are extremely confident in the localization of our robot (our kalman gain is very high)}
 \subsection*{Question 4}
-\textbf{Answer: Each of them is inside the smallest corresponding ellipse. This means that the initial guess for the landmark locations is a reasonable one and also that the landmarks are static.}
+\textbf{Below are the distances for the landmarks:}
+
+Euclidian Distances for Landmarks: [0.07643386 0.13544562 0.12695528 0.17027636 0.1480524  0.18891285]
+
+
+Mahalanobis Distance for Landmarks: [0.00000006 0.0000001  0.00000046 0.00000023 0.00000035 0.00000031]
+
+
+
+\textbf{Answer: Each of them is inside the smallest corresponding ellipse. This means that the initial guess for the landmark locations is a reasonable one and also that the landmarks are static. The euclidian distance here represents the straightline distance between the estimated and true locations of each landmark. The mahalanobis distance more of a distributional distance between the two landmarks. That is, it uses the covariance matrix in order to an extended metric that takes into account the scale of the distribution in addition to the displacment from the true locations (and normalizes by that scale). Since we have very small eigenvalues in the matrix, we expect this distance to be quite a bit smaller than the euclidian distance.}
 
 \clearpage
 \section{Discussion}
+\subsection*{Question 1}
+\textbf{We assume when doing these experiments that all of the landmarks are independent of each other which means we assume that the covariance between landmarks is 0. However, in the update step, when the kalman gain is calculated, this assumption will be broken when incorporating measurements. The jacobian is not a diagonal matrix and will impart the change in measurements with respect to the landmarks.}
+\subsection*{Question 2}
+\subsection*{Question 3}
 \end{document}

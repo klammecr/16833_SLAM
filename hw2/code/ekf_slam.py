@@ -90,7 +90,6 @@ def wrap2pi(angle_rad):
     angle_wrap = ((angle_rad + np.pi) % (2*np.pi)) - np.pi   
     return angle_wrap
 
-
 def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
     '''
     Initialize landmarks given the initial poses and measurements with their covariances
@@ -109,37 +108,40 @@ def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
     landmark_cov = np.zeros((2 * k, 2 * k))
 
     # Extract out the initial bearing
-    init_betas = init_measure[0::2]
+    init_betas = init_measure[0::2].squeeze()
 
     # Extract out the initial ranges
-    init_ranges = init_measure[1::2]
+    init_ranges = init_measure[1::2].squeeze()
 
     # Impart noise on the pose
     noisy_px  = np.random.normal(init_pose[0], init_pose_cov[0,0])
     noisy_py  = np.random.normal(init_pose[1], init_pose_cov[1,1])
     noisy_pth = np.random.normal(init_pose[2], init_pose_cov[2,2])
 
-    # Impart noise on the measurements
-    noisy_beta = np.random.normal(loc = init_betas,  scale = init_measure_cov[0,0])
-    noisy_r    = np.random.normal(loc = init_ranges, scale = init_measure_cov[1,1])
-
     # Calculate landmarks x & y component
-    l_x = noisy_px + noisy_r * np.cos(noisy_pth + noisy_beta)
-    l_y = noisy_py + noisy_r * np.sin(noisy_pth + noisy_beta)
-
-    # Calculate the deviation of the landmarks from the expectation (mean)
-    residual_x = l_x - (init_pose[0] + init_ranges * np.cos(init_betas + init_pose[2]))
-    residual_y = l_y - (init_pose[1] + init_ranges * np.sin(init_betas + init_pose[2]))
+    l_x = noisy_px + init_ranges * np.cos(noisy_pth + init_betas)
+    l_y = noisy_py + init_ranges * np.sin(noisy_pth + init_betas)
 
     # Put the landmrks in the np array
-    landmark[0::2] = l_x
-    landmark[1::2] = l_y
+    landmark[0::2] = np.reshape(l_x, (-1, 1))
+    landmark[1::2] = np.reshape(l_y, (-1, 1))
 
     # Calculate landmarks covariance matrix (deviation of the landmarks from the mean)
-    diag = np.zeros(landmark_cov.shape[0])
-    diag[0::2] = (residual_x**2)[:, 0]
-    diag[1::2] = (residual_y**2)[:, 0]
-    np.fill_diagonal(landmark_cov, diag)
+    for i in range(k):
+        # We take the function (say h) that transforms measurements to locations in the world
+        # We will calculate the following jacobian:
+        # [dh_x/d_beta, dh_x/d_r]
+        # [dh_y/d_beta, dh_y/d_r]
+        d_beta_x = -init_ranges[i] * np.sin(init_pose[2] + init_betas[i])
+        d_beta_y =  init_ranges[i] * np.cos(init_pose[2] + init_betas[i])
+        d_r_x    = np.cos(init_pose[2] + init_betas[i])
+        d_r_y    = np.sin(init_pose[2] + init_betas[i])
+        jacobian = np.array([[d_beta_x, d_r_x],
+                            [d_beta_y, d_r_y]])
+        jacobian = jacobian[:, :, 0]
+        
+        # I could have sampled for the measurements as well but this seemed more correct
+        landmark_cov[2*i:2*i+2, 2*i:2*i+2] = jacobian @ init_measure_cov @ jacobian.T
 
 
     return k, landmark, landmark_cov
@@ -169,9 +171,9 @@ def predict(X, P, control, control_cov, k):
     # Update the covariance with the jacobians (G_{t+1}) and the process noise (R_{t+1})
     jacobian = np.eye(3 + 2*k) # Make identity so we dont squash the landmark variance
     # This is for the x component of the pose and the landmarks
-    jacobian[0, 2]    = -control[0] * np.sin(X[2])
+    jacobian[0, 2]    = -dt * np.sin(X[2])
     # This is for the y component of the pose and the landmarks
-    jacobian[1, 2]    = control[0]  * np.cos(X[2])
+    jacobian[1, 2]    = dt * np.cos(X[2])
     
     # Take the control coviariance and apply it to the pose and landmarks
     rot_robot     = np.array([[np.cos(X[2]), -np.sin(X[2]), 0],
@@ -188,7 +190,6 @@ def predict(X, P, control, control_cov, k):
 
 
     return X_out, P_ret
-
 
 def update(X_pre, P_pre, measure, measure_cov, k):
     '''
@@ -222,38 +223,34 @@ def update(X_pre, P_pre, measure, measure_cov, k):
 
     # Find the distance to the landmarks
     r = delta**0.5
-    r += np.random.normal(0, measure_cov[1,1], size = k)
 
     # Find the bearing of the landmarks from the robot
     world_angle   = np.arctan2(delta_y, delta_x)
     bearing_angle = world_angle - X_pre[2]
-    bearing_angle += np.random.normal(0, measure_cov[0,0], size = k) # Impart the noise
     bearing_angle = wrap2pi(bearing_angle) # Get the angle in the valid range
+
+    Q = np.zeros((2*k, 2*k))
 
     # Calculate the measurement jacobian (transforms poses to measurements)
     # Measurement x State
     H = np.zeros((2*k, 2*k + 3))
     for i in range(k):
         # Poses
-        H[2*i+1,   0] = delta_x[i]/delta[i]**0.5
-        H[2*i+1,   1] = delta_y[i]/delta[i]**0.5
         H[2*i, 0]     = delta_y[i]/delta[i]
         H[2*i, 1]     = -delta_x[i]/delta[i]
         H[2*i, 2]     = -1
+        H[2*i+1,   0] = -delta_x[i]/delta[i]**0.5
+        H[2*i+1,   1] = -delta_y[i]/delta[i]**0.5
 
         # Calculate for the measurement of the landmark
         landmark_idx = 3 + 2*i
-        H[2*i + 1, landmark_idx]     = -delta_x[i]/delta[i]**0.5
-        H[2*i + 1, landmark_idx + 1] = -delta_y[i]/delta[i]**0.5
-        H[2*i,     landmark_idx]     = -1/delta_y[i]
-        H[2*i,     landmark_idx + 1] = 1/delta_x[i]
+        H[2*i,         landmark_idx]     = -delta_y[i]/delta[i]
+        H[2*i,         landmark_idx + 1] = delta_x[i]/delta[i]
+        H[2*i + 1,     landmark_idx]     = delta_x[i]/(delta[i]**0.5)
+        H[2*i + 1,     landmark_idx + 1] = delta_y[i]/(delta[i]**0.5)
 
-    # Reform the measurement noise so it can be additive
-    Q          = np.zeros((2*k, 2*k))
-    diag       = np.zeros((2*k))
-    diag[0::2] = measure_cov[0,0]
-    diag[1::2] = measure_cov[1,1]
-    np.fill_diagonal(Q, diag)
+        # Put in the noise
+        Q[2*i:2*i+2, 2*i:2*i+2] = measure_cov
 
     # Calculate the kalman gain to help form our weighted sum
     K = P_pre @ H.T @ np.linalg.inv(H @ P_pre @ H.T + Q)
@@ -292,7 +289,6 @@ def evaluate(X, P, k):
     residual = l_true - X[3:, 0]
     S        = P[3:, 3:]
     residual    = np.reshape(residual, (-1, 1))
-    mahalanobis = residual.T @ np.linalg.inv(S) @ residual
 
     # For loop for the distance
     mah_dists = []
@@ -300,7 +296,7 @@ def evaluate(X, P, k):
         dist  = residual[i:i+2]
         scale = S[i:i+2, i:i+2]
         scaled_dist = dist.T @ scale @ dist
-        mah_dists.append(scaled_dist[0])
+        mah_dists.append(scaled_dist[0, 0])
     mah_dists = np.array(mah_dists)
 
     # Euclidian Distance
@@ -321,7 +317,7 @@ def main():
     sig_y = 0.1;
     sig_alpha = 0.1;
     sig_beta = 0.01;
-    sig_r = 0.08;
+    sig_r = 0.5#sig_r = 0.08;
 
 
     # Generate variance from standard deviation

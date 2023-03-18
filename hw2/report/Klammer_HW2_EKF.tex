@@ -195,12 +195,21 @@ $$H_t =
     \frac{-1}{\delta_y} & \frac{1}{\delta_x}
 \end{bmatrix}$$
 
+\clearpage
 \section{Implementation and Evaluation}
 \subsection*{Question 1}
-\textbf{6 landmarks present}
+\textbf{Answer: 6 landmarks present}
 \subsection*{Question 2}
-\begin{figure}
+\begin{figure}[!htb]
     \includegraphics[width=0.95\textwidth]{EKF_SLAM_Result.png}
     \caption{EKF SLAM Result}
 \end{figure}
+\clearpage
+\subsection*{Question 3}
+\textbf{Answer: As the robot is moving, the magenta ellipses help give probable locations of the robot given the control in the prediction step and help focus on where the robot likely is. Once the update step comes along, this prediction can be refined using the measurements of the landmarks to hone in on a lower variance estimate. In this case, it is incredibly hood because there is not much variance or drift in the landmark measurements (green ellipses are very small) so after the update step, we are extremely confident in the localization of our robot (our kalman gain is very high)}
+\subsection*{Question 4}
+\textbf{Answer: Each of them is inside the smallest corresponding ellipse. This means that the initial guess for the landmark locations is a reasonable one and also that the landmarks are static.}
+
+\clearpage
+\section{Discussion}
 \end{document}

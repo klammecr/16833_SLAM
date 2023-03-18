@@ -144,49 +144,6 @@ def init_landmarks(init_measure, init_measure_cov, init_pose, init_pose_cov):
 
     return k, landmark, landmark_cov
 
-
-def predict(X, P, control, control_cov, k):
-    '''
-    TODO: predict step in EKF SLAM with derived Jacobians.
-    \param X State vector of shape (3 + 2k, 1) stacking pose and landmarks.
-    \param P Covariance matrix of shape (3 + 2k, 3 + 2k) for X.
-    \param control Control signal of shape (2, 1) in the polar space that moves the robot.
-    \param control_cov Control covariance of shape (3, 3) in the (x, y, theta) space given the parameters.
-    \param k Number of landmarks.
-    \return X_pre Predicted X state of shape (3 + 2k, 1).
-    \return P_pre Predicted P covariance of shape (3 + 2k, 3 + 2k).
-    '''
-
-    dt = control[0][0]
-    at = control[1][0]
-
-    x = X[0][0]
-    y = X[1][0]
-    theta = X[2][0]
-
-    updateX = np.zeros((3 + 2*k, 1))
-    updateX[0][0] = dt*np.cos(theta)
-    updateX[1][0] = dt*np.sin(theta)
-    updateX[2][0] = at
-    X_pre = X + updateX
-
-    Gt = np.eye(3 + 2*k)
-    Gxyt = np.array([[1, 0, -dt*np.sin(theta)],
-                    [0, 1, dt*np.cos(theta)], [0, 0, 1]])
-
-    Gt[0:3, 0:3] = Gxyt
-
-    G = Gt @ P @ (Gt.T)
-
-    R = np.zeros((3 + 2*k, 3 + 2*k))
-    rot = np.array([[np.cos(theta), -np.sin(theta), 0],
-                   [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
-    Rxyt = rot @ control_cov @ (rot.T)
-    R[0:3, 0:3] = Rxyt
-
-    P_pre = G+R
-    return X_pre, P_pre
-
 def predict(X, P, control, control_cov, k):
     '''
     Predict step in EKF SLAM with derived Jacobians.
@@ -330,6 +287,32 @@ def evaluate(X, P, k):
     plt.scatter(l_true[0::2], l_true[1::2])
     plt.draw()
     plt.waitforbuttonpress(0)
+
+    # Mahalanobis distance
+    residual = l_true - X[3:, 0]
+    S        = P[3:, 3:]
+    residual    = np.reshape(residual, (-1, 1))
+    mahalanobis = residual.T @ np.linalg.inv(S) @ residual
+
+    # For loop for the distance
+    mah_dists = []
+    for i in range(0, len(residual), 2):
+        dist  = residual[i:i+2]
+        scale = S[i:i+2, i:i+2]
+        scaled_dist = dist.T @ scale @ dist
+        mah_dists.append(scaled_dist[0])
+    mah_dists = np.array(mah_dists)
+
+    # Euclidian Distance
+    l_true = np.reshape(l_true, (len(l_true)//2, 2))
+    l_pred = np.reshape(X[3:], l_true.shape)
+    euclidian   = np.sum((l_true - l_pred)**2, axis = 1)**0.5
+
+    # Print out the P matrix
+    print(f"P Matrix: {P}")
+    print(f"Euclidian Distances for Landmarks: {euclidian}")
+    print(f"Mahalanobis Distance for Landmarks: {mah_dists}")
+
 
 
 def main():

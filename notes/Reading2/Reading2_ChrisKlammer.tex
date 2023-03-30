@@ -1,0 +1,47 @@
+\documentclass[12pt, a4paper]{article}
+\title{Reading 2: Kinect Fusion and NeRF}
+\author{Christopher Klammer}
+
+% A pretty common set of packages
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{color}
+\usepackage{float}
+\usepackage{bm}
+\usepackage{physics}
+\usepackage{subcaption}
+
+\begin{document}
+\maketitle
+\section{Kinect Fusion}
+% \subsection{The Sensor}
+% \begin{itemize}
+%     \item The kinect sensor is a 640x480 structured light depth sensor which generates depth maps at 30 Hz
+% \end{itemize}
+
+\subsection{Method}
+\begin{itemize}
+    \item The overall system comprises of surface measurement to produce vertex and surface normals to get a measurement structure, an update to the global scene using TSDF, surface prediction by using the global and local structures, and sensor pose estimation to find the alignment between the sensor measurement and the predicted surface.
+    \item The surface measurement consists of using the camera perspective projection equation to map to real world points then applying a bilateral filter to apply smoothing where then each point is mapped to a 3D vertex, adjacent vertices are crossed in order to create a surface
+    \item The paper suggests using a multi-scale representation by block averaging the finer representation then sub-sampling so long as the depth is not on outlier (spurious measurement that wouldn't contribute anyway)
+    \item Mapping here using TSDF where positive distances are visible and negative distances are behind the surface, visible points points too far are truncated while non visible points are not measured, otherwise we just have a distance to the nearest surface point and will be averaged over time via a weight and both $F_k$ and $W_k$ are recurisvely filtered. The weight will be positive if it is seen before.
+    \item Ray casting using a marching strategy for each depth pixel to predict the surface, they make a comment that if a point is lose to the surface, the gradient of the TSDF at the pixel can give the normal, interpolation is used to approximate the correct time of the zero crossing to be as accurate as possible.
+    \item Sensor pose estimation uses a fast projective data association method and the point plane error metric to minimize the energy function between the normals of the surface and the predicted normals from the correspondence with the pose estimate where ICP is used for optimization.
+\end{itemize}
+
+\clearpage
+\section{NeRF}
+\begin{itemize}
+    \item NeRF represents continuous scenes with only basic MLP networks with a 5D input of location (x,y,z) and viewing direction $(\theta, \psi)$ with output (r, g, b) and volume density $\sigma$
+    \item The weights are optimized to predict the volume density $\sigma$ as a function of the location  with 8 FC layers and outputs $\sigma$ and a 256-D feature vector, then, the feature vector is concatenated with the viewing direction and then passed to one more FC layer to output the color $c$
+    \item The continuous integral $C(r)$ is the expect color for the camera ray and must be estimated using quadrature and sampled by partitioning the near and far bounds of the integral by N evenly spaced bins which acts as a sufficient approximation and results in the MLP being evaluated at continuous positions
+    \item Positional encoding of input coordinates helps to represent high frequency functions similar to transformers using a sinusoid for each component in $x$ and $d$ to create a higher dimensional representation to approximate the high frequency function
+    \item Hierarchical sampling allows for efficient sampling by optimizing one coarse and one fine network, the coarse network uses the stratified sampling which is then passed into the fine sampling to take the best regions and boost importance to these areas
+    \item L2 loss is used for the coarse and fine color prediction for a given ray $r$ and 4096 rays, 64 coarse coordinates, and 128 fine coordinates with an ADAM optimizer
+\end{itemize}
+
+\end{document}

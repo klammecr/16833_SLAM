@@ -1,0 +1,52 @@
+\documentclass[12pt, a4paper]{article}
+\title{Homework 3: Solvers}
+\author{Christopher Klammer \\ \small\texttt{cklammer@andrew.cmu.edu}}
+
+% A pretty common set of packages
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{color}
+\usepackage{float}
+\usepackage{bm}
+\usepackage{physics}
+\usepackage{subcaption}
+
+\begin{document}
+\maketitle
+\section{Linear SLAM}
+\subsection{Measurement Function}
+\subsection{Odometry Measurement}
+\textbf{The odometry measurement should just be the vector from the pose at time $t$ to the pose at time $t+1$}
+$$h_{o}(\vectorbold{r^t}, \vectorbold{r^{t+1}}) = 
+\begin{bmatrix} r^{t+1}_x - r^t_x  & r^{t+1}_y - r^t_y \end{bmatrix}^T$$ 
+
+$$H_{o} = \begin{bmatrix}
+    \frac{\partial r^{t+1}_x - r^t_x}{\partial r^t_x} & \frac{r^{t+1}_x - r^t_x}{\partial r^t_y}& \frac{\partial r^{t+1}_x - r^t_x}{\partial r^{t+1}_{x}} & \frac{\partial r^{t+1}_x - r^t_x}{\partial r_y^{t+1}} \\
+    \frac{\partial r^{t+1}_y - r^t_y}{\partial r^t_x} & \frac{\partial r^{t+1}_y - r^t_y}{\partial r^t_y}& \frac{\partial r^{t+1}_y - r^t_y}{\partial r^{t+1}_{x}} & \frac{\partial r^{t+1}_y - r^t_y}{\partial r_y^{t+1}}
+\end{bmatrix}$$
+
+$$H_{o} = \begin{bmatrix}
+    -1 & 0 & 1 & 0 \\
+    0 & -1 & 0 & 1
+\end{bmatrix}$$
+
+\subsection{Landmark Measurement}
+\textbf{This will be extremely similar, just find the vector from the robot's position to the landmark}
+$$h_{l}(\vectorbold{r^t}, \vectorbold{l^k}) = 
+\begin{bmatrix} l^k_x - r^t_x  & l^k_y - r^t_y \end{bmatrix}^T$$
+
+
+$$H_l = \begin{bmatrix}
+    \frac{\partial l^k_x - r^t_x}{\partial r^t_x} & \frac{\partial l^k_x - r^t_x}{\partial r^t_y} & \frac{\partial l^k_x - r^t_x}{\partial l^k_x} & \frac{\partial l^k_x - r^t_x}{\partial l^k_y} \\
+    \frac{\partial l^k_y - r^t_y }{\partial r^t_x} & \frac{\partial l^k_y - r^t_y }{\partial r^t_y} & \frac{\partial l^k_y - r^t_y }{\partial l^k_x} & \frac{\partial l^k_y - r^t_y }{\partial l^k_y}
+\end{bmatrix}$$
+
+$$H_l = \begin{bmatrix}
+    -1 & 0 & 1 & 0 \\
+    0  & -1 & 0 & -1
+\end{bmatrix}$$
+\end{document}

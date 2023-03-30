@@ -5,13 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "HW3 Linear",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["/home/chris/dev/16833_SLAM/hw3/data/2d_linear.npz"]
+        },
+        {
             "name": "5 Particles",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["--num_particles", "1000", "--visualize", "--video"]
+            "args": [
+                "--num_particles",
+                "1000",
+                "--visualize",
+                "--video"
+            ]
         },
         {
             "name": "Default",

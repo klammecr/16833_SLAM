@@ -220,18 +220,18 @@ $$\frac{\partial \theta}{\partial l_x^k} = \frac{dx^2}{dx^2 + dy^2} * \frac{-dy}
 
 $$\frac{\partial \theta}{\partial l_y^k} = \frac{dx^2}{dx^2 + dy^2} * \frac{dx}{dx^2} = \frac{dx}{dx^2 + dy^2}$$
 
-$$\frac{\partial d}{\partial r_x^t} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * -2 * dx = \frac{-dx}{(dx^2 + dy^2)^{-\frac{1}{2}}}$$
+$$\frac{\partial d}{\partial r_x^t} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * -2 * dx = \frac{-dx}{(dx^2 + dy^2)^{1/2}}$$
 
-$$\frac{\partial d}{\partial r_y^t} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * -2 * dy = \frac{-dy}{(dx^2 + dy^2)^{-\frac{1}{2}}}$$
+$$\frac{\partial d}{\partial r_y^t} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * -2 * dy = \frac{-dy}{(dx^2 + dy^2)^{1/2}}$$
 
-$$\frac{\partial d}{\partial l_x^k} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * 2 * dx = \frac{dx}{(dx^2 + dy^2)^{-\frac{1}{2}}}$$
+$$\frac{\partial d}{\partial l_x^k} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * 2 * dx = \frac{dx}{(dx^2 + dy^2)^{1/2}}$$
 
-$$\frac{\partial d}{\partial l_y^k} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * 2 dy = \frac{dy}{(dx^2 + dy^2)^{-\frac{1}{2}}}$$
+$$\frac{\partial d}{\partial l_y^k} = \frac{1}{2} * (dx^2 + dy^2)^{-\frac{1}{2}} * 2 dy = \frac{dy}{(dx^2 + dy^2)^{1/2}}$$
 
 
 $$H_{l} = \begin{bmatrix}
-    \frac{dy}{dx^2 + dy^2} & -\frac{dx}{dx^2 + dy^2} & -\frac{dy}{dx^2 + dy^2} & \frac{dx}{dx^2 + dy^2} \\
-    \frac{-dx}{(dx^2 + dy^2)^{-\frac{1}{2}}} & \frac{dy}{(dx^2 + dy^2)^{-\frac{1}{2}}}& \frac{-dx}{(dx^2 + dy^2)^{-\frac{1}{2}}} & \frac{-dy}{(dx^2 + dy^2)^{-\frac{1}{2}}}
+    \frac{dy}{dx^2 + dy^2} & \frac{-dx}{dx^2 + dy^2} & \frac{-dy}{dx^2 + dy^2} & \frac{dx}{dx^2 + dy^2} \\
+    \frac{-dx}{(dx^2 + dy^2)^{1/2}} & \frac{-dy}{(dx^2 + dy^2)^{1/2}}& \frac{dx}{(dx^2 + dy^2)^{1/2}} & \frac{dy}{(dx^2 + dy^2)^{1/2}}
 \end{bmatrix}$$
 
 \end{document}

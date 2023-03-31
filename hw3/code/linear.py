@@ -29,50 +29,57 @@ def create_linear_system(odoms, observations, sigma_odom, sigma_observation,
 
     n_odom = len(odoms)
     n_obs  = len(observations)
-
-    num_odom_rows = (n_odom + 1) * 2
     M = (n_odom + 1) * 2 + n_obs * 2
     N = n_poses * 2 + n_landmarks * 2
 
+    # Initialize A and b
     A = np.zeros((M, N))
     b = np.zeros((M, ))
 
     # Prepare Sigma^{-1/2}.
     sqrt_inv_odom = np.linalg.inv(scipy.linalg.sqrtm(sigma_odom))
-    sqrt_inv_obs = np.linalg.inv(scipy.linalg.sqrtm(sigma_observation))
+    sqrt_inv_obs  = np.linalg.inv(scipy.linalg.sqrtm(sigma_observation))
 
     # These specify which pose and which landmark
     pose_idxs     = observations[:, 0].astype("int")
     landmark_idxs = observations[:, 1].astype("int")
 
+    # Initialize first pose
+    A[0:2, 0:2] = np.eye(2)
+
     # Fill in the odometry measurements
     # Note: Leave the first two rows as 0 to "initialize" the poses
-    b[2:2*n_poses] = odoms.flatten()
-    for i in range(n_odom):
-        # Set jacobian for the x component
-        A[2*(i+1), 2*i:2*i+4] = np.array([-1, 0, 1, 0])
+    b_odom = odoms @ sqrt_inv_odom 
+    b[2:2*n_poses] = b_odom.flatten()
 
-        # Set jacobian for the y component
-        A[2*(i+1) + 1, 2*i:2*i+4] = np.array([0, -1, 0, 1])
+    # Jacboian for odometry
+    H_o = np.array([[-1, 0, 1, 0],
+                   [0, -1, 0, 1]])
+    H_o = sqrt_inv_odom @ H_o
 
+    for i in range(2, 2*n_poses, 2):
+        # Set jacobian for odometry
+        pose_idx = i - 2
+        A[i:i + 2, pose_idx:pose_idx + 4] = H_o
 
-    # Fill in the landmark measurements (observations)
-    b[num_odom_rows:] = observations[:, 2:].flatten()
+    # Jacobian for landmarks
+    H_l = np.array([[-1, 0, 1, 0],
+                   [0, -1, 0, 1]])
+    H_l = sqrt_inv_obs @ H_l    
+
     for i in range(n_obs):
         # Indexing into our fun big jacobian array
-        x_row_idx    = num_odom_rows + 2*i
-        y_row_idx    = x_row_idx + 1
-        landmark_idx = num_odom_rows + 2*landmark_idxs[i]
-        pose_idx     = 2*pose_idxs[i]
+        x_row_idx    = 2 * n_poses + 2*i
+        landmark_idx = 2 * n_poses + 2*landmark_idxs[i]
+        pose_idx     = 2 * pose_idxs[i]
 
-        # Set jacobian w.r.t. lx
-        A[x_row_idx, landmark_idx] = 1
-        # Set jacobian w.r.t. pose x
-        A[x_row_idx, pose_idx] = -1
-        # Set jacobian w.r.t. ly
-        A[y_row_idx, landmark_idx + 1] = -1
-        # Set jacobian w.r.t. pose y
-        A[y_row_idx, pose_idx + 1] = -1
+        # Set jacobian for measurements
+        A[x_row_idx:x_row_idx+2, pose_idx:pose_idx+2]         = H_l[0:2, 0:2]
+        A[x_row_idx:x_row_idx+2, landmark_idx:landmark_idx+2] = H_l[0:2, 2:]
+
+        # Set the real measurements
+        b[x_row_idx:x_row_idx+2] = sqrt_inv_obs @ observations[i, 2:]
+        
 
     return csr_matrix(A), b
 

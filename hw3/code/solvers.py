@@ -29,20 +29,21 @@ def solve_lu(A, b):
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
 
     # Factorize A into L and U
-    inv_A = splu(A, perm_spec = "NATURAL")
     hessian = A.T @ A
-    U = inv_A.solve(hessian)
-    x = U @ A.T @ b
+    inv_A = splu(hessian, permc_spec = "NATURAL")
+    U = inv_A.U
+    x = inv_A.solve(A.T @ b)
 
     return x, U
 
 
 def solve_lu_colamd(A, b):
-    # TODO: return x, U s.t. Ax = b, and Permutation_rows A Permutration_cols = LU with reordered LU decomposition.
+    # return x, U s.t. Ax = b, and Permutation_rows A Permutration_cols = LU with reordered LU decomposition.
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.splu.html
-    inv_A = splu(A, perm_spec = "NATURAL")
-    x = np.zeros((N, ))
-    U = eye(N)
+    hessian = A.T @ A
+    inv_A = splu(hessian, permc_spec = "COLAMD")
+    U = inv_A.U
+    x = inv_A.solve(A.T @ b)
     return x, U
 
 
@@ -55,20 +56,19 @@ def solve_qr(A, b):
     # This works directly on A, A = Q[R | 0]^T
     # Q is an orthogonal basis, R is upper triangular
 
-    z, R, E, rank = rz(A, b)
-    N = A.shape[1]
-    x = np.zeros((N, ))
-    R = eye(N)
+    z, R, E, rank = rz(A, b, permc_spec = "NATURAL")
+    x = spsolve_triangular(R, z, lower = False)
+
     return x, R
 
 
 def solve_qr_colamd(A, b):
-    # TODO: return x, R s.t. Ax = b, and |Ax - b|^2 = |R E^T x - d|^2 + |e|^2, with reordered QR decomposition (E is the permutation matrix).
+    # return x, R s.t. Ax = b, and |Ax - b|^2 = |R E^T x - d|^2 + |e|^2, with reordered QR decomposition (E is the permutation matrix).
     # https://github.com/theNded/PySPQR
-    N = A.shape[1]
-    x = np.zeros((N, ))
-    R = eye(N)
-    return x, R
+    z, R, E, rank = rz(A, b, permc_spec = "COLAMD")
+    permute_mtx = permutation_vector_to_matrix(E)
+    x = spsolve_triangular(R, z, lower = False)
+    return permute_mtx@x, R
 
 
 def solve(A, b, method='default'):

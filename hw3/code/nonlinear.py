@@ -30,7 +30,7 @@ def init_states(odoms, observations, n_poses, n_landmarks):
     '''
     traj = np.zeros((n_poses, 2))
     landmarks = np.zeros((n_landmarks, 2))
-    landmarks_mask = np.zeros((n_landmarks), dtype=np.bool)
+    landmarks_mask = np.zeros((n_landmarks), dtype=np.bool_)
 
     for i in range(len(odoms)):
         traj[i + 1, :] = traj[i, :] + odoms[i, :]
@@ -57,8 +57,13 @@ def odometry_estimation(x, i):
     \param i Index of the pose to start from (odometry between pose i and i+1)
     \return odom Odometry (\Delta x, \Delta) in the shape (2, )
     '''
-    # TODO: return odometry estimation
     odom = np.zeros((2, ))
+ 
+    dx = x[2*(i+1)] - x[2*i]
+    dy = x[2*(i+1) + 1] - x[2*i + 1]
+
+    odom[0] = dx
+    odom[1] = dy
 
     return odom
 
@@ -71,8 +76,21 @@ def bearing_range_estimation(x, i, j, n_poses):
     \param n_poses Number of poses
     \return obs Observation from pose i to landmark j (theta, d) in the shape (2, )
     '''
-    # TODO: return bearing range estimations
     obs = np.zeros((2, ))
+
+    # Extract out necessary information
+    r_x = x[2*i]
+    r_y = x[2*i+1]
+    l_x = x[2 * n_poses + 2*j]
+    l_y = x[2 * n_poses + 2*j+1]
+
+    # Calculate bearing and range
+    theta = warp2pi(np.arctan2(l_y - r_y, l_x - r_x))
+    d     = np.sqrt((l_y - r_y)**2 + (l_x - r_x)**2)
+
+    # Put in output vector
+    obs[0] = theta
+    obs[1] = d
 
     return obs
 
@@ -85,8 +103,24 @@ def compute_meas_obs_jacobian(x, i, j, n_poses):
     \param n_poses Number of poses
     \return jacobian Derived Jacobian matrix in the shape (2, 4)
     '''
-    # TODO: return jacobian matrix
+    # Get the measurement jacobian
     jacobian = np.zeros((2, 4))
+
+    # Extract out the robot pose and landmarks
+    r_x = x[2*i]
+    r_y = x[2*i + 1]
+    l_x = x[2*n_poses + 2*j]
+    l_y = x[2*n_poses + 2*j + 1]
+
+    # Get the displacement vectors
+    dx = l_x - r_x
+    dy = l_y - r_y
+    dist_sq = dx**2 + dy**2
+
+    # dtheta
+    jacobian[0] = (1/dist_sq) * np.array([dy, -dx, -dy, dx])
+    # ddistance
+    jacobian[1] = (1/(dist_sq**0.5)) * np.array([-dx, -dy, dx, dy])
 
     return jacobian
 
@@ -118,11 +152,51 @@ def create_linear_system(x, odoms, observations, sigma_odom, sigma_observation,
     sqrt_inv_odom = np.linalg.inv(scipy.linalg.sqrtm(sigma_odom))
     sqrt_inv_obs = np.linalg.inv(scipy.linalg.sqrtm(sigma_observation))
 
-    # TODO: First fill in the prior to anchor the 1st pose at (0, 0)
+    # These specify which pose and which landmark
+    pose_idxs     = observations[:, 0].astype("int")
+    landmark_idxs = observations[:, 1].astype("int")
 
-    # TODO: Then fill in odometry measurements
+    # First fill in the prior to anchor the 1st pose at (0, 0)
+    A[0:2, 0:2] = np.eye(2)
 
-    # TODO: Then fill in landmark measurements
+    # Fill in odometry measurements
+
+    # Jacboian for odometry
+    H_o = np.array([[-1, 0, 1, 0],
+                   [0, -1, 0, 1]])
+    H_o = sqrt_inv_odom @ H_o
+
+    for i in range(n_odom):
+        # Set jacobian for odometry
+        A[2*(i+1):2*(i+2), 2*i:2*(i+2)] = H_o
+
+        # Take the estimated minus the measurement to get the residual
+        est_odom = odometry_estimation(x, i)
+        b[2*(i+1):2*(i+2)] = sqrt_inv_odom @ (odoms[i] - est_odom)
+
+    # Then fill in landmark measurements
+    for i in range(n_obs):
+        # Indexing into our fun big jacobian array
+        x_row_idx    = 2 * n_poses + 2*i
+        landmark_idx = 2 * n_poses + 2*landmark_idxs[i]
+        pose_idx     = 2 * pose_idxs[i]
+
+        # Obtain the jacobian
+        H_l = compute_meas_obs_jacobian(x, pose_idxs[i], landmark_idxs[i], n_poses)
+        H_l = sqrt_inv_obs @ H_l
+
+        # Set jacobian for measurements
+        A[x_row_idx:x_row_idx+2, pose_idx:pose_idx+2]         = H_l[0:2, 0:2]
+        A[x_row_idx:x_row_idx+2, landmark_idx:landmark_idx+2] = H_l[0:2, 2:]
+
+        # Extract theta and d
+        est_meas = bearing_range_estimation(x, pose_idxs[i], landmark_idxs[i], n_poses)
+        act_meas = observations[i, 2:]
+        residual = act_meas - est_meas
+
+        # Make sure to wrap the angle difference to be in the valid range
+        residual[0] = warp2pi(residual[0])
+        b[2*n_poses + 2*i: 2*n_poses + 2*i+2] = sqrt_inv_obs @ residual
 
     return csr_matrix(A), b
 
@@ -169,7 +243,7 @@ if __name__ == '__main__':
             A, b = create_linear_system(x, odom, observations, sigma_odom,
                                         sigma_landmark, n_poses, n_landmarks)
             dx, _ = solve(A, b, method)
-            x = x + dx
+            x = x.flatten() + dx.flatten()
         traj, landmarks = devectorize_state(x, n_poses)
         print('After optimization')
         plot_traj_and_landmarks(traj, landmarks, gt_traj, gt_landmarks)

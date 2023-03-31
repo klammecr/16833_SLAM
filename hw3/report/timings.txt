@@ -1,0 +1,5 @@
+pinv takes 4.9001195430755615s on average
+lu takes 0.0725245475769043s on average
+lu_colamd takes 0.18591833114624023s on average
+qr_colamd takes 1.1368789672851562s on average
+qr takes 1.0742275714874268s on average

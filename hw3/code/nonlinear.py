@@ -85,7 +85,7 @@ def bearing_range_estimation(x, i, j, n_poses):
     l_y = x[2 * n_poses + 2*j+1]
 
     # Calculate bearing and range
-    theta = warp2pi(np.arctan2(l_y - r_y, l_x - r_x))
+    theta = np.arctan2(l_y - r_y, l_x - r_x)
     d     = np.sqrt((l_y - r_y)**2 + (l_x - r_x)**2)
 
     # Put in output vector
@@ -123,7 +123,6 @@ def compute_meas_obs_jacobian(x, i, j, n_poses):
     jacobian[1] = (1/(dist_sq**0.5)) * np.array([-dx, -dy, dx, dy])
 
     return jacobian
-
 
 def create_linear_system(x, odoms, observations, sigma_odom, sigma_observation,
                          n_poses, n_landmarks):
@@ -196,7 +195,7 @@ def create_linear_system(x, odoms, observations, sigma_odom, sigma_observation,
 
         # Make sure to wrap the angle difference to be in the valid range
         residual[0] = warp2pi(residual[0])
-        b[2*n_poses + 2*i: 2*n_poses + 2*i+2] = sqrt_inv_obs @ residual
+        b[x_row_idx: x_row_idx + 2] = sqrt_inv_obs @ residual
 
     return csr_matrix(A), b
 

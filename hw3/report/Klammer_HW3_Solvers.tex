@@ -234,4 +234,41 @@ $$H_{l} = \begin{bmatrix}
     \frac{-dx}{(dx^2 + dy^2)^{1/2}} & \frac{-dy}{(dx^2 + dy^2)^{1/2}}& \frac{dx}{(dx^2 + dy^2)^{1/2}} & \frac{dy}{(dx^2 + dy^2)^{1/2}}
 \end{bmatrix}$$
 
+\clearpage
+
+\subsection{Solver}
+
+\subsubsection{Linear vs. Non-Linear SLAM}
+The difference between the linear and non-linear SLAM problem lies in a few key aspects here. I will first discuss linear SLAM and why it is simpler that non-linear SLAM. Then I will discuss the complexities of non-linear SLAM and why the optimization must be formulated differently. 
+
+Linear least squares is a fairly simple formulation, where $h_i(x) = Hx + h_0$ and we assume that there is no rotations that would make the formulation non-linear. At this point we can solve for x that minimizes the least squares solution $||Ax - b||^2$ where $A$ is the jacobian of our measurement function, $x$ is the state and b is $z - h_0$ or the true measurement with some constant from the measurement function.
+
+The first being that with non-linear SLAM, we are inherently working with a non-convex problem with a non-direct solution. Thus, we must perform an approximation for the measurement function. This approximation is carried out in the form of a first order taylor series expansion about a particular linearization point $x^0$ of the form:
+
+$$z_{est} = h_i(x) = h(x^0 + \delta) = h(x^0) + \frac{\partial h(x)}{x} * (x - x^0)$$ 
+
+Here, this linearization point needs to be dictated by essentially a current guess or estimate and will be iteratively improved to move the estimated and actual measurements closer together. This methodology is inherently dependent on a good initialization and its covergence (or at least its speed of convergence) is highly sensitive to the initial estimate of the state $x^0$. Knowing this formulation we can find the residual of our measurement and estimated approximation in order to iteratively solve: 
+
+$$||z_{est} = z||^2 = ||h(x^0) + \frac{\partial h(x)}{\partial x}|_{x=x_0} * (x - x^0) - z||^2 = ||A\delta - b||^2$$
+
+where:
+
+$$A = h(x^0) + \frac{\partial h(x)}{\partial x}|_{x=x_0}$$
+$$b = z$$ 
+$$\delta = x-x_0$$
+
+\clearpage
+\subsubsection{Visualization}
+\begin{figure}[!htb]
+    \center
+    \includegraphics[width=0.75\textwidth]{nonlinear_results/QRCOLAMD_BeforeOptim.png}
+    \caption{QR COLAMD Before Optimization}
+\end{figure}
+
+\begin{figure}[!htb]
+    \center
+    \includegraphics[width=0.75\textwidth]{nonlinear_results/QRCOLAMD_AfterOptim.png}
+    \caption{QR COLAMD After Optimization}
+\end{figure}
+
 \end{document}

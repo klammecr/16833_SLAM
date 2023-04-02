@@ -1,0 +1,1 @@
+python nonlinear.py /home/chris/dev/16833_SLAM/hw3/data/2d_nonlinear.npz --method pinv lu lu_colamd qr qr_colamd

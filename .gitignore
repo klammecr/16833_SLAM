@@ -170,3 +170,5 @@ cython_debug/
 *.toc
 *.mp4
 *fdb_latexmk
+
+hw4/dataset*

@@ -4,7 +4,17 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
+        {
+            "name": "HW4 Run ICP",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "C:/Users/chris/dev/16833/hw4/dataset"
+            ]
+        },
         {
             "name": "HW3 Linear",
             "type": "python",
@@ -12,7 +22,11 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["/home/chris/dev/16833_SLAM/hw3/data/2d_linear.npz", "--method", "qr_colamd"]
+            "args": [
+                "/home/chris/dev/16833_SLAM/hw3/data/2d_linear.npz",
+                "--method",
+                "qr_colamd"
+            ]
         },
         {
             "name": "5 Particles",

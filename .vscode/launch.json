@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "C:/Users/chris/dev/16833/hw4/dataset"
+                "/home/chris/dev/16833_SLAM/hw4/dataset"
             ]
         },
         {

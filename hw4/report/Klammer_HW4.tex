@@ -20,7 +20,7 @@
 
 \section{Iterative Closest Point}
 \subsection{Projective Data Association}
-\subsubsection{Conditions for First Filter}
+\subsubsection{Conditions for First Filter (5 Points)}
 When projecting the source points onto the target points:
 \begin{itemize}
     \item The projected source points must lie on the target image plane:
@@ -37,9 +37,9 @@ When projecting the source points onto the target points:
         \item $d(u,v) > 0$
     \end{itemize}
 \end{itemize}
-\subsubsection{Second Filter Discussion}
+\subsubsection{Second Filter Discussion (5 Points)}
 The second filter will see if the corresponding 3D points are close enough. Essentially, this is to see if the correspondence is valid. This is necessary because when there are large angles between frames and potential parallax, this check essentially makes sure that the small angle assumption is witheld. Otherwise, We could get two points that have very different depth values and would likely not yield a good solution because it is outside the assumption.
-\subsection{Linearization}
+\subsection{Linearization (15 Points)}
 
 \subsubsection{Expansion}
 $$p'_i = R^0p_i + t^0$$
@@ -247,8 +247,20 @@ $$\begin{bmatrix}
 -(\vec{b_1} + \vec{b_2} + \vec{b_3})
 $$
 
+
 $$
+QR = A = \begin{bmatrix}
+    \vec{C_1} &
+    \vec{C_2} &
+    \vec{C_3} & 
+    \vec{n^x} &
+    \vec{n^y} &
+    \vec{n^z}
+\end{bmatrix}
 $$
+
+$$x = R^{-1} \cdot (Q^{T} \cdot b)$$
+
 
 
 \subsubsection{Visualization (10 Points)}
@@ -277,7 +289,24 @@ $$
 The frames 10 and 50 are able to be aligned very well because of the small angle assumption. That is, there is not much rotation between the two frames. However, in frames 150 and 300, we can see that there is a rather large rotation between the two frames and some parallax effects. For example, see the bottom left and top left corner of the wall, there is a large rotation between those two points. Whereas, for frames 10 and 50, they are extremely close and the rotation is much smaller so the assumption is more valid in this case.
 
 \section{Point Based Fusion}
-\subsection{Merge}
+\subsection{Filter (5 Points)}
+
+\subsubsection{Filter 1}
+\begin{itemize}
+    \item $u \geq 0$
+    \item $v \geq 0$
+    \item $u \le H$
+    \item $v \le W$
+\end{itemize}
+
+\subsubsection{Filter 2}
+\begin{itemize}
+    \item $arccos(\frac{n_q \cdot n_p}{\vert \vert n_q \vert \vert \vert \vert n_p \vert \vert}) \le T_{angle}$
+    \item $\vert \vert p_p - p_q \vert \vert \le T_{dist}$
+\end{itemize}
+See code writeup for more details.
+
+\subsection{Merge (15 Points)}
 \subsubsection{Weighted Average of Positions}
 $$q_{world} = R_c^w q + t_c^w$$
 $$p = \frac{q_{world} + w * p}{w + 1}$$
@@ -300,10 +329,10 @@ $$N = len(p_{map})$$
 
 \textbf{Compression Rate: 0.08912773502931323}
 
-\subsubsection{Addition}
+\subsubsection{Addition (10 Points)}
 Those entries that are new are concatenated to the numpy arrays with $w = 1$. See the code for more additional details.
 
-\subsection{Results}
+\subsection{Results (10 Points)}
 \begin{figure}[!htb]
     \centering
     \includegraphics[width=0.8\textwidth]{FusionVis.PNG}
@@ -317,14 +346,51 @@ Those entries that are new are concatenated to the numpy arrays with $w = 1$. Se
 
 \clearpage
 \section{Dense SLAM}
-\subsection{Source and Target}
-The source here is the map and the target is the RGB-D frame. I don't really think a swap is possible because when looking for valid correspondence, we need to pass the filter which assumes we are projecting the 3D points to a 2D plane. If you swapped the role, when performing ICP, nothing would be theoretically filtered out in filter one and, in general, would require a completely different strategy if this behavior was desired.
+\subsection{Source and Target (5 Points)}
+The source here is the map and the target is the RGB-D frame. I don't really think a swap is possible because when looking for valid correspondence, we need to pass the filter for correspondence which assumes we are projecting the 3D points to a 2D plane. If the points are not in front of the image plane or on the image plane, they would be filtered out. If you swapped the role, when performing ICP, you would need to take the points on the image and compare them to all of the points in 3D, for one this would be extremely expensive, two, nothing would be theoretically filtered out in filter one and, in general, would require a completely different strategy if this behavior was desired. If there was something more logical like a binning spatial representation of the 3D points, this could possibly be more plausible but would not work for our current setup.
 
-\subsubsection{Visualization}
+\clearpage
+\subsection{Visualization (10 Points)}
+\subsubsection{Results}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.8\textwidth]{SLAM_Visual.png}
+    \caption{Visualization of Dense Map with Colors}
+\end{figure}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Normal_SLAM.png}
+    \caption{Visualization of Dense Normal Map}
+\end{figure}
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.8\textwidth]{SLAM_Traj.png}
+    \caption{Trajectory of the Camera in Dense SLAM}
+\end{figure}
 
-\subsubsection{Reducing Drift}
+\clearpage
+\subsubsection{Reducing Drift (Extra Credit: 10 Points)}
 I chose to do the following:
 \begin{enumerate}
-    \item If points were not updated in the past 20 timesteps, remove them to mitigate drift
+    \item If points were not updated in the past 35 timesteps, remove them to mitigate drift and spurious associations
+    \item Use the built in Open3D RGB-D odometry to receive a more accurate initial pose estimation before performing ICP
 \end{enumerate}
+
+
+\begin{figure}
+    \includegraphics[width=0.9\textwidth]{OdoAddition_Traj.png}
+    \caption{Trajectory after odometry and pruning}
+\end{figure}
+
+
+\begin{figure}
+    \includegraphics[width=0.9\textwidth]{a.png}
+    \caption{Color after odometry and pruning}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=0.9\textwidth]{b.png}
+    \caption{Normal after odometry and pruning}
+\end{figure}
+
 \end{document}

@@ -24,7 +24,7 @@ class Map:
         self.last_update = np.empty((0, 1))
         self.update_num  = 0
         self.initialized = False
-        self.old_thresh  = 10
+        self.old_thresh  = 35
 
     def merge(self, indices, points, normals, colors, R, t):
         '''
@@ -57,21 +57,22 @@ class Map:
         # Increase the weight by the weight of q
         self.weights[indices] += 1
 
-        # # Mark these as updated
-        # self.last_update[indices] = self.update_num
+        # Mark these as updated
+        self.last_update[indices] = self.update_num
 
-        # # Prune those that are stale
-        # self.prune()
+        # Prune those that are stale
+        self.prune()
 
-        # self.update_num += 1
+        self.update_num += 1
 
     def prune(self):
         time_since_last_update = self.update_num - self.last_update
-        stale = time_since_last_update >= self.old_thresh
-        self.points = np.delete(self.points, stale, axis = 0)
-        self.normals = np.delete(self.normals, stale, axis = 0)
-        self.colors = np.delete(self.colors, stale, axis = 0)
-        self.weights = np.delete(self.weights, stale, axis = 0)
+        stale = (time_since_last_update >= self.old_thresh).flatten()
+        self.points  = self.points[~stale, :]
+        self.normals = self.normals[~stale, :]
+        self.colors  = self.colors[~stale, :]
+        self.weights = self.weights[~stale, :]
+        self.last_update = self.last_update[~stale, :]
 
 
     def add(self, points, normals, colors, R, t):
